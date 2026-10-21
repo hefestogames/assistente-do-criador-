@@ -231,4 +231,5 @@ with gr.Blocks(title="Assistente do Criador", theme=gr.themes.Base(), css=custom
 
     gr.HTML('<div style="text-align:center;padding:30px;color:#64748b;font-size:13px">🎬 Assistente do Criador · v2.0</div>')
 
-app.launch()
+   import os
+   app.launch(server_name="0.0.0.0", server_port=int(os.environ.get("PORT", "7860")))
