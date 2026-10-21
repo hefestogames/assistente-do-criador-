@@ -1,4 +1,4 @@
-import yt_dlp, re, statistics, csv, datetime, warnings, time, random
+import yt_dlp, re, statistics, csv, datetime, warnings, time, random, os
 import gradio as gr
 warnings.filterwarnings("ignore")
 
@@ -22,7 +22,7 @@ TABELA_RPM = {
     "🎬 Curiosidades":12,"🔪 Histórias/Crimes":18,"📽️ Documentário":20,
     "🎥 Resumo de Filmes":15,"🙏 Religião":10,"💪 Motivacional":9,
     "🎵 Música/Relax":4,"🎮 Games":8,"⚽ Esportes":14,
-    "🚗 Carros":26,"🤖 Tecnologia/IA":35,"💊 Saúde":22,"💰 Finanças":55,
+    "🚗 Carros":26," Tecnologia/IA":35,"💊 Saúde":22,"💰 Finanças":55,
 }
 
 # ═══════════════ MOTOR DE BUSCA ═══════════════
@@ -105,7 +105,7 @@ def render_cards(resultados):
 <div class="ac-card-body">
 <div class="ac-stat-mini"><div class="lbl">👥 Inscritos</div><div class="val">{fmt(r['inscritos'])}</div></div>
 <div class="ac-stat-mini"><div class="lbl">📈 Views/vídeo</div><div class="val">{fmt(r['media_rec'])}</div></div>
-<div class="ac-stat-mini"><div class="lbl">🔥 Taxa viral</div><div class="val">{r['taxa']:.2f}x</div></div>
+<div class="ac-stat-mini"><div class="lbl"> Taxa viral</div><div class="val">{r['taxa']:.2f}x</div></div>
 <div class="ac-stat-mini"><div class="lbl">📊 Mediana</div><div class="val">{fmt(r['mediana'])}</div></div></div>
 <div class="ac-money"><div><div style="font-size:10px;opacity:.8;color:#d1fae5">GANHO POR VÍDEO</div><strong>{brl(r['ganho_video'])}</strong></div>
 <div style="text-align:right;font-size:11px;color:#d1fae5">Total do canal<br><strong style="font-size:16px">{brl((r['views_totais'] or sum(v['views'] for v in r['videos']))/1000*r['rpm'])}</strong></div></div>''')
@@ -118,7 +118,7 @@ def render_cards(resultados):
     html.append('</div>')
     return "".join(html)
 
-# ═══════════════ FUNÇÃO CAÇADOR ═══════════════
+# ══════════════ FUNÇÃO CAÇADOR ═══════════════
 def cacar(palavra, nicho_label, qtd, insc_min, insc_max, vids, estrangeiro):
     if not palavra or not palavra.strip():
         return "<div style='padding:40px;text-align:center;color:#f87171'>⚠️ Digite o que você quer caçar!</div>", None
@@ -137,7 +137,7 @@ def cacar(palavra, nicho_label, qtd, insc_min, insc_max, vids, estrangeiro):
         ins = a["inscritos"]
         if ins is None or ins<insc_min or ins>insc_max: continue
         tx = a["taxa"] or 0
-        a["status"], a["emoji"] = ("ESTOURANDO","🚀") if tx>=1.0 else (("Saudável","📈") if tx>=0.3 else ("Estagnado","😴"))
+        a["status"], a["emoji"] = ("ESTOURANDO","") if tx>=1.0 else (("Saudável","📈") if tx>=0.3 else ("Estagnado","😴"))
         a["rpm"] = RPM; a["ganho_video"] = a["media_rec"]/1000*RPM
         resultados.append(a)
         if len(resultados)>=int(qtd): break
@@ -197,7 +197,7 @@ with gr.Blocks(title="Assistente do Criador", theme=gr.themes.Base(), css=custom
                 with gr.Column(scale=2):
                     palavra = gr.Textbox(label="🎯 O que caçar?", placeholder="Ex: histórias de terror, carros abandonados, true crime...")
                 with gr.Column(scale=1):
-                    nicho = gr.Dropdown(list(TABELA_RPM.keys()), value="🔪 Histórias/Crimes", label="💰 Nicho")
+                    nicho = gr.Dropdown(list(TABELA_RPM.keys()), value=" Histórias/Crimes", label="💰 Nicho")
             with gr.Row():
                 qtd = gr.Slider(3,20,value=8,step=1,label="📊 Quantos canais")
                 vids_caca = gr.Slider(10,50,value=30,step=5,label="🎬 Vídeos por canal")
@@ -223,7 +223,7 @@ with gr.Blocks(title="Assistente do Criador", theme=gr.themes.Base(), css=custom
 
         with gr.Tab("💡 Guia"):
             gr.Markdown("""
-            ### 📖 Como usar
+            ###  Como usar
             **🕵️ Caçador**: digite o tema, escolha o nicho, clique em INICIAR CAÇADA.
             **🔎 Analisador**: cole o link de um canal e veja tudo sobre ele.
             **💰 Dicas**: busque em inglês para achar canais que pagam 3x mais. Taxa viral acima de 1.0x = ESTOURANDO 🚀
@@ -231,5 +231,8 @@ with gr.Blocks(title="Assistente do Criador", theme=gr.themes.Base(), css=custom
 
     gr.HTML('<div style="text-align:center;padding:30px;color:#64748b;font-size:13px">🎬 Assistente do Criador · v2.0</div>')
 
-   import os
-   app.launch(server_name="0.0.0.0", server_port=int(os.environ.get("PORT", "7860")))
+# ═══════════════ LINHA MÁGICA PRO RENDER ═══════════════
+app.launch(
+    server_name="0.0.0.0",
+    server_port=int(os.environ.get("PORT", "7860"))
+)
