@@ -2,6 +2,12 @@ import yt_dlp, re, statistics, csv, datetime, warnings, time, random, os
 import gradio as gr
 warnings.filterwarnings("ignore")
 
+try:
+    import google.generativeai as genai
+    GEMINI_AVAILABLE = True
+except:
+    GEMINI_AVAILABLE = False
+
 # ═══════════════ UTILITÁRIOS ═══════════════
 PADRAO_NUM = re.compile(r"(\d+(?:[.,]\d+)?)\s*(bilh[oõ]es?|bilh[aã]o|milh[oõ]es?|milh[aã]o|mil|mi|m|b|k)?", re.I)
 MAPA_MULT = {"bilhoes":1e9,"bilhao":1e9,"b":1e9,"milhoes":1e6,"milhao":1e6,"mi":1e6,"m":1e6,"mil":1e3,"k":1e3}
@@ -22,11 +28,36 @@ TABELA_RPM = {
     "🎬 Curiosidades":12, "🔪 Histórias/Crimes":18, "📽️ Documentário":20,
     "🎥 Resumo de Filmes":15, "🙏 Religião":10, "💪 Motivacional":9,
     "🎵 Música/Relax":4, "🎮 Games":8, "⚽ Esportes":14,
-    "🚗 Carros":26, "🤖 Tecnologia/IA":35, "💊 Saúde":22, "💰 Finanças":55,
+    "🚗 Carros":26, " Tecnologia/IA":35, "💊 Saúde":22, "💰 Finanças":55,
     "🎙️ Cortes de Podcast":8, "🧘 Meditação":6, "₿ Finanças Cripto":45,
-    "📱 Shorts/TikTok":5, "🎯 Marketing Digital":40, "🏋️ Fitness":18,
-    "🍳 Receitas":14, "🐶 Pets":16, "✈️ Viagens":28,
+    "📱 Shorts/TikTok":5, "🎯 Marketing Digital":40, "️ Fitness":18,
+    " Receitas":14, "🐶 Pets":16, "✈️ Viagens":28,
+    "👻 Sobrenatural":22, "📚 Autoajuda":16, "🎭 Fofoca/Celebridades":10,
 }
+
+# ═══════════════ IA REAL (GEMINI) COM FALLBACK ═══════════════
+def chamar_ia(prompt, api_key):
+    """Chama o Google Gemini tentando múltiplos modelos"""
+    if not api_key or not api_key.strip():
+        return None
+    try:
+        genai.configure(api_key=api_key.strip())
+        # Tenta modelos em ordem (do mais novo para o mais antigo)
+        modelos = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash", "gemini-pro"]
+        for modelo in modelos:
+            try:
+                model = genai.GenerativeModel(modelo)
+                response = model.generate_content(
+                    prompt,
+                    generation_config={"temperature": 0.8, "max_output_tokens": 2048}
+                )
+                if response and response.text:
+                    return response.text
+            except Exception as e:
+                continue
+        return None
+    except Exception as e:
+        return None
 
 # ═══════════════ MOTOR DE BUSCA ═══════════════
 def buscar_videos(query, max_results=50):
@@ -66,100 +97,155 @@ def analisar_canal(url, max_vids=30):
             "media_rec":statistics.mean(rec),"mediana":statistics.median(views),
             "taxa":(statistics.mean(rec)/ins) if ins else None,
             "bombas":sorted([v for v in videos if v["views"]>statistics.median(views)*2.5],
-                            key=lambda x:x["views"],reverse=True)[:3]}
+                            key=lambda x:x["views"],reverse=True)[:5]}
 
-# ═══════════════ GERADOR DE TÍTULOS COM IA (POR TÍTULO, SEM ERROS) ═══════════════
-def gerar_titulos_ia(titulo_video, nicho):
+# ═══════════════ GERADORES COM IA REAL ═══════════════
+def gerar_titulos_ia(titulo_video, nicho, api_key):
     if not titulo_video or not titulo_video.strip():
-        return "<div style='padding:40px;text-align:center;color:#F97316;font-size:20px;font-family:Poppins,sans-serif'>⚠️ Digite o título de um vídeo viral!</div>"
+        return "<div style='padding:40px;text-align:center;color:#F97316;font-size:20px;font-family:Poppins,sans-serif'>️ Digite o título de um vídeo viral!</div>"
     
-    try:
-        numeros = re.findall(r'\d+', titulo_video)
-        titulos_ia = []
-        
-        # Padrão 1: Mudar números
-        if numeros:
-            num_base = int(numeros[0])
-            for mult in [0.5, 2, 10, 100]:
-                novo_num = max(1, int(num_base * mult))
-                novo_titulo = re.sub(r'\d+', str(novo_num), titulo_video, count=1)
-                titulos_ia.append(f"🔢 {novo_titulo}")
-        
-        # Padrão 2: Trocar valores monetários
-        if "$" in titulo_video or "R$" in titulo_video:
-            valores = ["$1", "$100", "$1,000", "$10,000", "$100,000", "$1,000,000"]
-            for valor in valores[:5]:
-                novo_titulo = re.sub(r'[\$R\$][\d,\.]+', valor, titulo_video)
-                if novo_titulo != titulo_video:
-                    titulos_ia.append(f"💰 {novo_titulo}")
-        
-        # Padrão 3: Trocar períodos de tempo
-        tempos = ["24 Horas", "7 Dias", "30 Dias", "100 Dias", "1 Ano"]
-        for tempo in tempos:
-            novo_titulo = re.sub(r'\d+\s*(dias?|horas?|minutos?)', tempo, titulo_video, flags=re.I)
-            if novo_titulo != titulo_video:
-                titulos_ia.append(f"⏱️ {novo_titulo}")
-        
-        # Padrão 4: Adicionar urgência
-        if len(titulos_ia) < 10:
-            titulos_ia.append(f"🚨 URGENTE: {titulo_video}")
-            titulos_ia.append(f"⚠️ ATENÇÃO: {titulo_video}")
-            titulos_ia.append(f"💥 IMPRESSIONANTE: {titulo_video}")
-        
-        # Remover duplicatas e limitar a 10
-        titulos_ia = list(dict.fromkeys(titulos_ia))[:10]
-        
-        html = f'''
-        <div style="background: linear-gradient(135deg, #1e1b4b, #312e81); padding: 30px; border-radius: 20px; border: 3px solid #f97316; margin-top: 20px; box-shadow: 0 8px 40px rgba(249,115,22,0.4);">
-            <h3 style="color: #fde047 !important; font-size: 24px !important; font-weight: 900; margin-top: 0; text-transform: uppercase; letter-spacing: 2px; font-family: 'Poppins', sans-serif;">
-                📊 Título Original Analisado
-            </h3>
-            <p style="color: #ffffff; font-size: 18px; font-weight: 600; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; border-left: 4px solid #f97316;">
-                {titulo_video}
-            </p>
-            <h3 style="color: #f97316 !important; font-size: 24px !important; font-weight: 800; margin-top: 30px; text-transform: uppercase; letter-spacing: 2px; font-family: 'Poppins', sans-serif;">
-                🎯 10 TÍTULOS GERADOS PELA IA:
-            </h3>
-        '''
-        
-        for i, titulo in enumerate(titulos_ia, 1):
-            html += f'''
-            <div style="background: linear-gradient(135deg, #0f0f1e, #1e1b4b); padding: 18px 25px; border-radius: 12px; margin-bottom: 12px; border-left: 6px solid #f97316; color: #ffffff !important; font-size: 16px !important; font-weight: 600; box-shadow: 0 4px 20px rgba(124,58,237,0.3); transition: all 0.3s;">
-                <span style="color: #fde047; font-weight: 800; margin-right: 10px;">{i}.</span> {titulo}
-            </div>
-            '''
-        
-        html += '''
-            <p style="color: #c4b5fd; font-size: 16px; margin-top: 25px; padding-top: 20px; border-top: 3px solid #6d28d9; text-align: center;">
-                <strong style="color: #fde047; font-size: 18px;">💎 Dica:</strong> Escolha o título que melhor se adapta ao seu público e combine com uma thumbnail impactante!
-            </p>
-        </div>
-        '''
-        return html
-    except Exception as e:
-        return f"❌ Erro ao gerar títulos: {str(e)}"
+    prompt = f"""Você é um especialista em títulos virais para YouTube no nicho de {nicho}.
+    
+Título original viral: "{titulo_video}"
 
-def gerar_titulos_simples(nicho, palavra_chave):
-    if not palavra_chave:
-        return "<div style='padding:40px;text-align:center;color:#F97316;font-size:20px;font-family:Poppins,sans-serif'>⚠️ Digite uma palavra-chave.</div>"
-    kw = palavra_chave.strip().title()
-    titulos = [
-        f"🚨 A Verdade Sombria Sobre {kw} Que Ninguém Te Conta",
-        f"💰 Como {kw} Está Fazendo Criadores de Conteúdo Ficarem Milionários",
-        f"⚠️ 7 Fatos Assustadores Sobre {kw} (O Número 4 Vai Te Chocar)",
-        f"📉 Por Que {kw} Está Falindo Rapidamente em 2024",
-        f"👑 O Segredo Por Trás do Sucesso de {kw} (Estudo de Caso)",
-        f"🔥 Top 10 Maiores Mistérios de {kw} Resolvidos",
-        f"💀 Eu Investi 30 Dias Estudando {kw} e o Resultado Foi Assustador"
-    ]
-    html = f'<div style="background: linear-gradient(135deg, #1e1b4b, #312e81); padding: 30px; border-radius: 20px; border: 3px solid #f97316; margin-top: 20px;">'
-    html += f'<h3 style="color: #fde047 !important; font-size: 24px !important; font-weight: 900; margin-top: 0; font-family: Poppins, sans-serif;">💡 7 TÍTULOS PARA: "{kw}"</h3>'
-    for t in titulos:
-        html += f'<div style="background: linear-gradient(135deg, #0f0f1e, #1e1b4b); padding: 18px 25px; border-radius: 12px; margin-bottom: 12px; border-left: 6px solid #f97316; color: #ffffff !important; font-size: 16px !important; font-weight: 600;">{t}</div>'
-    html += '</div>'
+Analise o padrão psicológico deste título (gatilhos mentais, curiosidade, urgência, números, emoção) e gere EXATAMENTE 10 títulos NOVAS e CRIATIVAS seguindo o mesmo estilo, mas com variações inteligentes.
+
+Regras:
+- Cada título deve ser único e criativo
+- Use gatilhos mentais diferentes em cada um
+- Varie entre: curiosidade, urgência, números, emoção, desafio, segredo
+- Mantenha o mesmo estilo e tom do original
+- Responda APENAS com a lista numerada, uma por linha, sem explicações extras
+- Formato: 1. Título aqui"""
+    
+    resultado = chamar_ia(prompt, api_key)
+    
+    if resultado:
+        titulos = [linha.strip() for linha in resultado.split('\n') if linha.strip() and re.match(r'^\d+[\.\)]', linha.strip())]
+        if not titulos:
+            titulos = [linha.strip() for linha in resultado.split('\n') if linha.strip() and len(linha.strip()) > 20][:10]
+    else:
+        titulos = gerar_titulos_fallback(titulo_video)
+    
+    html = f'''<div style="background: linear-gradient(135deg, #1e1b4b, #312e81); padding: 30px; border-radius: 20px; border: 3px solid #f97316; margin-top: 20px; box-shadow: 0 8px 40px rgba(249,115,22,0.4);">
+        <h3 style="color: #fde047 !important; font-size: 24px !important; font-weight: 900; margin-top: 0; text-transform: uppercase; letter-spacing: 2px; font-family: Poppins, sans-serif;">📊 Título Original Analisado</h3>
+        <p style="color: #ffffff; font-size: 18px; font-weight: 600; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; border-left: 4px solid #f97316;">{titulo_video}</p>
+        <h3 style="color: #f97316 !important; font-size: 24px !important; font-weight: 800; margin-top: 30px; text-transform: uppercase; letter-spacing: 2px; font-family: Poppins, sans-serif;">🎯 10 TÍTULOS GERADOS PELA IA:</h3>'''
+    
+    for i, titulo in enumerate(titulos[:10], 1):
+        titulo_limpo = re.sub(r'^\d+[\.\)]\s*', '', titulo)
+        html += f'''<div style="background: linear-gradient(135deg, #0f0f1e, #1e1b4b); padding: 18px 25px; border-radius: 12px; margin-bottom: 12px; border-left: 6px solid #f97316; color: #ffffff !important; font-size: 16px !important; font-weight: 600; box-shadow: 0 4px 20px rgba(124,58,237,0.3);">
+            <span style="color: #fde047; font-weight: 800; margin-right: 10px;">{i}.</span> {titulo_limpo}
+        </div>'''
+    
+    html += '''<p style="color: #c4b5fd; font-size: 16px; margin-top: 25px; padding-top: 20px; border-top: 3px solid #6d28d9; text-align: center;">
+        <strong style="color: #fde047; font-size: 18px;">💎 Dica:</strong> Escolha o título que melhor se adapta ao seu público e combine com uma thumbnail impactante!
+    </p></div>'''
     return html
 
-# ═══════════════ CSS MODERNO E VIBRANTE ═══════════════
+def gerar_titulos_fallback(titulo):
+    """Fallback caso a IA não esteja disponível"""
+    numeros = re.findall(r'\d+', titulo)
+    titulos = []
+    if numeros:
+        num = int(numeros[0])
+        for n in [num//2, num*2, num*10, 100, 1000]:
+            titulos.append(re.sub(r'\d+', str(n), titulo, count=1))
+    titulos.extend([
+        f"🚨 URGENTE: {titulo}",
+        f"⚠️ ATENÇÃO: {titulo}",
+        f"💥 IMPRESSIONANTE: {titulo}",
+        f"🔥 O SEGREDO: {titulo}",
+        f"😱 INACREDITÁVEL: {titulo}",
+    ])
+    return list(dict.fromkeys(titulos))[:10]
+
+def gerar_roteiro(tema, canais_info, api_key):
+    if not tema or not tema.strip():
+        return "<div style='padding:40px;text-align:center;color:#F97316;font-size:20px;font-family:Poppins,sans-serif'>⚠️ Digite o tema do seu vídeo!</div>"
+    
+    canais_str = ""
+    if canais_info and len(canais_info) > 0:
+        canais_str = "\nCanais de referência analisados:\n"
+        for c in canais_info[:5]:
+            canais_str += f"- {c.get('nome','Canal')}: {fmt(c.get('media_rec',0))} views/vídeo\n"
+            for b in c.get('bombas', [])[:2]:
+                canais_str += f"  • Vídeo viral: {b.get('titulo','')} ({fmt(b.get('views',0))} views)\n"
+    
+    prompt = f"""Você é um roteirista especialista em canais Dark do YouTube no nicho de {tema}.
+{canais_str}
+Crie um ROTEIRO COMPLETO e ESTRUTURADO para um vídeo de 8-12 minutos sobre: "{tema}"
+
+Estrutura obrigatória:
+1.  GANCHO (0-30s): Frase impactante que prende a atenção
+2. 🎬 INTRODUÇÃO (30s-1min): Contexto e promessa do vídeo
+3. 📖 DESENVOLVIMENTO (1-9min): 5-7 blocos de conteúdo com transições
+4. 💥 CLÍMAX (9-11min): Momento mais impactante
+5. 📣 CTA FINAL (11-12min): Chamada para ação (like, inscrição, próximo vídeo)
+
+Para cada bloco do desenvolvimento, inclua:
+- O que falar (texto sugerido)
+- Sugestão de imagem/cena
+- Duração estimada
+
+Responda de forma organizada, clara e pronta para usar. Use linguagem envolvente e direta."""
+    
+    resultado = chamar_ia(prompt, api_key)
+    
+    if resultado:
+        html = f'''<div style="background: linear-gradient(135deg, #1e1b4b, #312e81); padding: 30px; border-radius: 20px; border: 3px solid #10b981; margin-top: 20px; box-shadow: 0 8px 40px rgba(16,185,129,0.4);">
+            <h3 style="color: #10b981 !important; font-size: 26px !important; font-weight: 900; margin-top: 0; text-transform: uppercase; letter-spacing: 2px; font-family: Poppins, sans-serif;">📝 ROTEIRO COMPLETO</h3>
+            <p style="color: #ffffff; font-size: 16px; background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px; border-left: 4px solid #10b981; margin-bottom: 20px;"><strong>Tema:</strong> {tema}</p>
+            <div style="color: #ffffff; font-size: 15px; line-height: 1.7; white-space: pre-wrap; font-family: Inter, sans-serif;">{resultado}</div>
+            <p style="color: #a7f3d0; font-size: 14px; margin-top: 25px; padding-top: 15px; border-top: 2px solid #10b981; text-align: center;">
+                <strong>💡 Dica:</strong> Use este roteiro como base e adapte com sua personalidade!
+            </p>
+        </div>'''
+        return html
+    else:
+        return "<div style='padding:40px;text-align:center;color:#F97316;font-size:18px'>❌ Erro ao gerar roteiro. Verifique sua chave API ou tente novamente.</div>"
+
+def gerar_thumbnails(tema, canais_info, api_key):
+    if not tema or not tema.strip():
+        return "<div style='padding:40px;text-align:center;color:#F97316;font-size:20px;font-family:Poppins,sans-serif'>⚠️ Digite o tema do seu vídeo!</div>"
+    
+    canais_str = ""
+    if canais_info and len(canais_info) > 0:
+        canais_str = "\nEstilo dos canais de referência:\n"
+        for c in canais_info[:3]:
+            canais_str += f"- {c.get('nome','Canal')}: taxa viral {c.get('taxa',0):.2f}x\n"
+    
+    prompt = f"""Você é um especialista em thumbnails virais para YouTube.
+Tema do vídeo: "{tema}"
+{canais_str}
+Crie 5 IDEIAS DETALHADAS de thumbnails que gerem alta taxa de clique (CTR).
+
+Para cada ideia, inclua:
+1. 🖼️ DESCRIÇÃO VISUAL: O que aparece na imagem (pessoas, objetos, cenário)
+2. 😱 EXPRESSÃO: Emoção do rosto (se houver pessoa)
+3. 📝 TEXTO NA THUMB: Texto curto (máx 4 palavras) em destaque
+4. 🎨 CORES: Paleta de cores sugerida
+5. ⚡ ELEMENTO CHAVE: O que chama atenção (seta, círculo, contraste)
+6. 🎯 GATILHO PSICOLÓGICO: Por que essa thumb funciona
+
+Responda de forma organizada, numerada de 1 a 5."""
+    
+    resultado = chamar_ia(prompt, api_key)
+    
+    if resultado:
+        html = f'''<div style="background: linear-gradient(135deg, #1e1b4b, #312e81); padding: 30px; border-radius: 20px; border: 3px solid #ec4899; margin-top: 20px; box-shadow: 0 8px 40px rgba(236,72,153,0.4);">
+            <h3 style="color: #ec4899 !important; font-size: 26px !important; font-weight: 900; margin-top: 0; text-transform: uppercase; letter-spacing: 2px; font-family: Poppins, sans-serif;"> 5 IDEIAS DE THUMBNAILS</h3>
+            <p style="color: #ffffff; font-size: 16px; background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px; border-left: 4px solid #ec4899; margin-bottom: 20px;"><strong>Tema:</strong> {tema}</p>
+            <div style="color: #ffffff; font-size: 15px; line-height: 1.7; white-space: pre-wrap; font-family: Inter, sans-serif;">{resultado}</div>
+            <p style="color: #fbcfe8; font-size: 14px; margin-top: 25px; padding-top: 15px; border-top: 2px solid #ec4899; text-align: center;">
+                <strong> Dica:</strong> Use o Canva (grátis) para criar as thumbnails com essas especificações!
+            </p>
+        </div>'''
+        return html
+    else:
+        return "<div style='padding:40px;text-align:center;color:#F97316;font-size:18px'>❌ Erro ao gerar thumbnails. Verifique sua chave API ou tente novamente.</div>"
+
+# ═══════════════ CSS MODERNO ═══════════════
 CSS_BEGINS = """
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800;900&family=Montserrat:wght@400;600;700;800;900&family=Inter:wght@400;600;700&display=swap');
@@ -168,6 +254,33 @@ CSS_BEGINS = """
 body, .gradio-container, .main, .wrap, .gradio-app { 
     background: linear-gradient(135deg, #0F0F1E 0%, #1A1A2E 50%, #16213E 100%) !important; 
     color: #ffffff !important;
+}
+
+.api-key-banner {
+    background: linear-gradient(135deg, #1e1b4b, #312e81);
+    border: 2px solid #f97316;
+    border-radius: 15px;
+    padding: 20px;
+    margin: 20px auto;
+    max-width: 1200px;
+    box-shadow: 0 4px 20px rgba(249,115,22,0.3);
+}
+.api-key-banner h3 {
+    color: #fde047 !important;
+    font-family: 'Poppins', sans-serif !important;
+    font-size: 20px !important;
+    font-weight: 800 !important;
+    margin: 0 0 10px 0;
+}
+.api-key-banner p {
+    color: #c4b5fd !important;
+    font-size: 14px !important;
+    margin: 0 0 15px 0;
+}
+.api-key-banner a {
+    color: #f97316 !important;
+    font-weight: 700 !important;
+    text-decoration: underline !important;
 }
 
 .ac-header { 
@@ -288,7 +401,7 @@ def render_cards(resultados):
             html.append(f'''<div class="ac-card"><div class="ac-card-head"><h3>{r['emoji']} {r['nome']}</h3><span class="ac-badge ac-badge-{bc}">{r['status']}</span></div>
 <div class="ac-card-body">
 <div class="ac-stat-mini"><div class="lbl">👥 Inscritos</div><div class="val">{fmt(r['inscritos'])}</div></div>
-<div class="ac-stat-mini"><div class="lbl">📈 Views/vídeo</div><div class="val">{fmt(r['media_rec'])}</div></div>
+<div class="ac-stat-mini"><div class="lbl"> Views/vídeo</div><div class="val">{fmt(r['media_rec'])}</div></div>
 <div class="ac-stat-mini"><div class="lbl">🔥 Taxa viral</div><div class="val">{r['taxa']:.2f}x</div></div>
 <div class="ac-stat-mini"><div class="lbl">📊 Mediana</div><div class="val">{fmt(r['mediana'])}</div></div></div>
 <div class="ac-money"><div><div class="label">GANHO POR VÍDEO</div><strong>{brl(r['ganho_video'])}</strong></div>
@@ -304,11 +417,11 @@ def render_cards(resultados):
 
 def cacar(palavra, nicho_label, qtd, insc_min, insc_max, vids, estrangeiro):
     if not palavra or not palavra.strip():
-        return "<div style='padding:60px;text-align:center;color:#F97316;font-size:24px;font-weight:700;background:linear-gradient(135deg,#1E1B4B,#312E81);border-radius:20px;border:3px solid #F97316;box-shadow:0 10px 50px rgba(249,115,22,0.5);margin:40px auto;max-width:800px;font-family:Poppins,sans-serif'>⚠️ Digite o que você quer caçar!</div>", None
+        return "<div style='padding:60px;text-align:center;color:#F97316;font-size:24px;font-weight:700;background:linear-gradient(135deg,#1E1B4B,#312E81);border-radius:20px;border:3px solid #F97316;box-shadow:0 10px 50px rgba(249,115,22,0.5);margin:40px auto;max-width:800px;font-family:Poppins,sans-serif'>️ Digite o que você quer caçar!</div>", None, []
     RPM = TABELA_RPM.get(nicho_label,12) * (3.2 if estrangeiro else 1.0)
     vids_achados = buscar_videos(palavra, 50)
     if not vids_achados:
-        return "<div style='padding:60px;text-align:center;color:#F97316;font-size:24px;font-weight:700;background:linear-gradient(135deg,#1E1B4B,#312E81);border-radius:20px;border:3px solid #F97316;box-shadow:0 10px 50px rgba(249,115,22,0.5);margin:40px auto;max-width:800px;font-family:Poppins,sans-serif'>❌ Nada encontrado. Tente outra palavra.</div>", None
+        return "<div style='padding:60px;text-align:center;color:#F97316;font-size:24px;font-weight:700;background:linear-gradient(135deg,#1E1B4B,#312E81);border-radius:20px;border:3px solid #F97316;box-shadow:0 10px 50px rgba(249,115,22,0.5);margin:40px auto;max-width:800px;font-family:Poppins,sans-serif'>❌ Nada encontrado. Tente outra palavra.</div>", None, []
     canais = {}
     for v in vids_achados:
         uc = v.get("channel_url") or v.get("uploader_url")
@@ -320,7 +433,7 @@ def cacar(palavra, nicho_label, qtd, insc_min, insc_max, vids, estrangeiro):
         ins = a["inscritos"]
         if ins is None or ins<insc_min or ins>insc_max: continue
         tx = a["taxa"] or 0
-        a["status"], a["emoji"] = ("ESTOURANDO","🚀") if tx>=1.0 else (("Saudável","📈") if tx>=0.3 else ("Estagnado","😴"))
+        a["status"], a["emoji"] = ("ESTOURANDO","🚀") if tx>=1.0 else (("Saudável","") if tx>=0.3 else ("Estagnado","😴"))
         a["rpm"] = RPM; a["ganho_video"] = a["media_rec"]/1000*RPM
         resultados.append(a)
         if len(resultados)>=int(qtd): break
@@ -337,11 +450,11 @@ def cacar(palavra, nicho_label, qtd, insc_min, insc_max, vids, estrangeiro):
         csv_path = f"Relatorio_Begins_{datetime.date.today().isoformat()}.csv"
         with open(csv_path,"w",newline="",encoding="utf-8-sig") as f:
             w = csv.DictWriter(f, fieldnames=dados[0].keys()); w.writeheader(); w.writerows(dados)
-    return render_cards(resultados), csv_path
+    return render_cards(resultados), csv_path, resultados
 
 def analisar_canal_ui(url_canal, nicho_label, vids, estrangeiro):
     if not url_canal or not url_canal.strip():
-        return "<div style='padding:60px;text-align:center;color:#F97316;font-size:24px;font-weight:700;background:linear-gradient(135deg,#1E1B4B,#312E81);border-radius:20px;border:3px solid #F97316;box-shadow:0 10px 50px rgba(249,115,22,0.5);margin:40px auto;max-width:800px;font-family:Poppins,sans-serif'>⚠️ Cole o link do canal!</div>"
+        return "<div style='padding:60px;text-align:center;color:#F97316;font-size:24px;font-weight:700;background:linear-gradient(135deg,#1E1B4B,#312E81);border-radius:20px;border:3px solid #F97316;box-shadow:0 10px 50px rgba(249,115,22,0.5);margin:40px auto;max-width:800px;font-family:Poppins,sans-serif'>⚠️ Cole o link do canal!</div>", []
     RPM = TABELA_RPM.get(nicho_label,12) * (3.2 if estrangeiro else 1.0)
     url = url_canal.strip()
     if url.startswith("@"): url = "https://www.youtube.com/" + url
@@ -349,13 +462,13 @@ def analisar_canal_ui(url_canal, nicho_label, vids, estrangeiro):
         url = "https://www.youtube.com/channel/"+url if url.startswith("UC") else "https://www.youtube.com/"+url
     a = analisar_canal(url, int(vids))
     if a is None:
-        return "<div style='padding:60px;text-align:center;color:#F97316;font-size:24px;font-weight:700;background:linear-gradient(135deg,#1E1B4B,#312E81);border-radius:20px;border:3px solid #F97316;box-shadow:0 10px 50px rgba(249,115,22,0.5);margin:40px auto;max-width:800px;font-family:Poppins,sans-serif'>❌ Canal não encontrado. Verifique o link.</div>"
+        return "<div style='padding:60px;text-align:center;color:#F97316;font-size:24px;font-weight:700;background:linear-gradient(135deg,#1E1B4B,#312E81);border-radius:20px;border:3px solid #F97316;box-shadow:0 10px 50px rgba(249,115,22,0.5);margin:40px auto;max-width:800px;font-family:Poppins,sans-serif'>❌ Canal não encontrado. Verifique o link.</div>", []
     tx = a["taxa"] or 0
     a["status"], a["emoji"] = ("ESTOURANDO","🚀") if tx>=1.0 else (("Saudável","📈") if tx>=0.3 else ("Estagnado","😴"))
     a["rpm"] = RPM; a["ganho_video"] = a["media_rec"]/1000*RPM
-    return render_cards([a])
+    return render_cards([a]), [a]
 
-# ═══════════════ INTERFACE ═══════════════
+# ══════════════ INTERFACE ═══════════════
 begins_theme = gr.themes.Base(
     primary_hue="orange", secondary_hue="purple", neutral_hue="slate",
     font=[gr.themes.GoogleFont("Inter"), "ui-sans-serif", "system-ui", "sans-serif"]
@@ -364,12 +477,27 @@ begins_theme = gr.themes.Base(
 with gr.Blocks(title="Begins · Assistente do Criador", theme=begins_theme) as app:
     gr.HTML("""
     <div class="ac-header">
-        <h1><span class="begins">🐘 BEGINS</span>Assistente doCriador</h1>
+        <h1><span class="begins">🐘 BEGINS</span>Assistente do Criador</h1>
         <div class="creator">Murilo Silva · Criador de Conteúdo</div>
         <p class="subtitle">O ponto de partida para o seu novo negócio no YouTube</p>
-        <span class="badge">✨ Versão 8.0 · Com IA Generativa</span>
+        <span class="badge">✨ Versão 9.1 · Com IA Real Gemini</span>
     </div>
     """)
+    
+    gr.HTML("""
+    <div class="api-key-banner">
+        <h3>🔑 CHAVE API DO GOOGLE GEMINI (GRÁTIS)</h3>
+        <p>Obtenha sua chave gratuita em: <a href="https://aistudio.google.com/app/apikey" target="_blank">aistudio.google.com/app/apikey</a> — Necessária para usar a IA real nos geradores.</p>
+    </div>
+    """)
+    
+    api_key_input = gr.Textbox(
+        label="🔑 Cole sua chave API do Gemini aqui (começa com AIza... ou AQ...)",
+        placeholder="AIzaSy... ou AQ.Ab8...",
+        type="password"
+    )
+    
+    canais_state = gr.State([])
     
     with gr.Tabs():
         with gr.Tab("🕵️ Caçador de Canais"):
@@ -386,12 +514,12 @@ with gr.Blocks(title="Begins · Assistente do Criador", theme=begins_theme) as a
                 insc_min = gr.Slider(1000,100000,value=10000,step=1000,label="👥 Inscritos mín.")
                 insc_max = gr.Slider(50000,2000000,value=500000,step=10000,label="👥 Inscritos máx.")
             estrangeiro = gr.Checkbox(True, label="🌍 Público estrangeiro (paga 3x mais)")
-            btn = gr.Button("🚀 INICIAR CAÇADA", variant="primary", size="lg")
+            btn = gr.Button(" INICIAR CAÇADA", variant="primary", size="lg")
             out_html = gr.HTML()
-            out_csv = gr.File(label="📥 Baixar Relatório Begins (CSV)")
-            btn.click(fn=cacar, inputs=[palavra,nicho,qtd,insc_min,insc_max,vids_caca,estrangeiro], outputs=[out_html,out_csv])
+            out_csv = gr.File(label=" Baixar Relatório Begins (CSV)")
+            btn.click(fn=cacar, inputs=[palavra,nicho,qtd,insc_min,insc_max,vids_caca,estrangeiro], outputs=[out_html,out_csv,canais_state])
 
-        with gr.Tab("🔎 Analisar Canal"):
+        with gr.Tab(" Analisar Canal"):
             gr.Markdown("### 🔗 Cole o link de um canal para uma auditoria completa")
             url_analise = gr.Textbox(label="📎 Link ou @ do canal", placeholder="https://www.youtube.com/@NomeDoCanal")
             with gr.Row():
@@ -400,18 +528,18 @@ with gr.Blocks(title="Begins · Assistente do Criador", theme=begins_theme) as a
             estrangeiro2 = gr.Checkbox(False, label="🌍 Canal em inglês/espanhol?")
             btn2 = gr.Button("📊 AUDITAR CANAL", variant="primary", size="lg")
             out2 = gr.HTML()
-            btn2.click(fn=analisar_canal_ui, inputs=[url_analise,nicho2,vids_analise,estrangeiro2], outputs=out2)
+            btn2.click(fn=analisar_canal_ui, inputs=[url_analise,nicho2,vids_analise,estrangeiro2], outputs=[out2,canais_state])
 
         with gr.Tab("🧠 Gerador de Títulos IA"):
-            gr.Markdown("### ✍️ Cole o TÍTULO de um vídeo que estourou e receba 10 ideias no mesmo estilo")
-            gr.Markdown("A IA analisa o padrão do texto e gera variações otimizadas (sem erros de bloqueio do YouTube).")
+            gr.Markdown("### ✍️ Cole o TÍTULO de um vídeo viral e receba 10 ideias criativas")
+            gr.Markdown("A IA REAL (Gemini) analisa o padrão e gera títulos únicos e criativos.")
             titulo_video_ia = gr.Textbox(label="📝 Título do vídeo viral", placeholder="Ex: I Survived 100 Days In Nuclear Bunker, Win $500,000")
             nicho_ia = gr.Dropdown(list(TABELA_RPM.keys()), value="🔪 Histórias/Crimes", label="💰 Nicho do Canal")
             btn_ia = gr.Button("✨ GERAR 10 TÍTULOS COM IA", variant="primary", size="lg")
             out_ia = gr.HTML()
-            btn_ia.click(fn=gerar_titulos_ia, inputs=[titulo_video_ia, nicho_ia], outputs=out_ia)
+            btn_ia.click(fn=lambda t, n, k: gerar_titulos_ia(t, n, k), inputs=[titulo_video_ia, nicho_ia, api_key_input], outputs=out_ia)
 
-        with gr.Tab("📝 Gerador de Títulos"):
+        with gr.Tab("📝 Gerador de Títulos Simples"):
             gr.Markdown("### 📝 Crie títulos baseados em fórmulas virais comprovadas")
             with gr.Row():
                 with gr.Column(scale=1):
@@ -420,21 +548,44 @@ with gr.Blocks(title="Begins · Assistente do Criador", theme=begins_theme) as a
                     kw_gen = gr.Textbox(label="🎯 Palavra-chave ou Tema do Vídeo", placeholder="Ex: navio fantasma, loteria não reclamada, mansão abandonada")
             btn_gen = gr.Button("📝 GERAR 7 TÍTULOS", variant="primary", size="lg")
             out_gen = gr.HTML()
-            btn_gen.click(fn=gerar_titulos_simples, inputs=[nicho_gen, kw_gen], outputs=out_gen)
+            btn_gen.click(fn=lambda n, k: gerar_titulos_ia(k, n, ""), inputs=[nicho_gen, kw_gen], outputs=out_gen)
 
-        with gr.Tab("💡 Guia"):
+        with gr.Tab("📜 Gerador de Roteiro"):
+            gr.Markdown("###  Gere um roteiro completo baseado no seu tema e canais de referência")
+            gr.Markdown("A IA cria um roteiro estruturado com gancho, desenvolvimento e CTA.")
+            tema_roteiro = gr.Textbox(label="🎯 Tema do seu vídeo", placeholder="Ex: Os mistérios não resolvidos do Triângulo das Bermudas")
+            btn_roteiro = gr.Button("📜 GERAR ROTEIRO COMPLETO", variant="primary", size="lg")
+            out_roteiro = gr.HTML()
+            btn_roteiro.click(fn=lambda t, k, canais: gerar_roteiro(t, canais, k), inputs=[tema_roteiro, api_key_input, canais_state], outputs=out_roteiro)
+
+        with gr.Tab("🎨 Gerador de Thumbnails"):
+            gr.Markdown("### 🎨 Crie ideias de thumbnails virais para seu vídeo")
+            gr.Markdown("A IA sugere 5 thumbnails detalhadas com descrição visual, cores e gatilhos psicológicos.")
+            tema_thumb = gr.Textbox(label=" Tema do seu vídeo", placeholder="Ex: Os mistérios não resolvidos do Triângulo das Bermudas")
+            btn_thumb = gr.Button(" GERAR 5 THUMBNAILS", variant="primary", size="lg")
+            out_thumb = gr.HTML()
+            btn_thumb.click(fn=lambda t, k, canais: gerar_thumbnails(t, canais, k), inputs=[tema_thumb, api_key_input, canais_state], outputs=out_thumb)
+
+        with gr.Tab(" Guia"):
             gr.Markdown("""
             ### 📖 Como usar o Begins · Assistente do Criador
             
-            **1. 🕵️ Caçador de Canais:** Digite o tema, escolha o nicho e clique em INICIAR CAÇADA. Foque nos canais marcados com 🚀 ESTOURANDO.
-            **2. 🔎 Analisador:** Já tem um concorrente? Cole o link e veja a média real de views (esqueça o número total de inscritos, olhe a mediana!).
-            **3. 🧠 Gerador de Títulos IA:** Cole o TÍTULO de um vídeo viral e receba 10 ideias de títulos no mesmo estilo.
-            **4. 📝 Gerador de Títulos:** Use fórmulas comprovadas para criar títulos baseados em palavras-chave.
+            **1. 🔑 Primeiro passo:** Obtenha sua chave API gratuita do Gemini em [aistudio.google.com](https://aistudio.google.com/app/apikey) e cole no campo no topo.
+            
+            **2. ️ Caçador de Canais:** Digite o tema, escolha o nicho e clique em INICIAR CAÇADA. Foque nos canais marcados com 🚀 ESTOURANDO.
+            
+            **3. 🔎 Analisador:** Já tem um concorrente? Cole o link e veja a média real de views.
+            
+            **4. 🧠 Gerador de Títulos IA:** Cole o TÍTULO de um vídeo viral e receba 10 ideias criativas da IA real.
+            
+            **5. 📜 Gerador de Roteiro:** Após caçar canais, use esta aba para gerar um roteiro completo baseado no seu tema.
+            
+            **6. 🎨 Gerador de Thumbnails:** Crie 5 ideias detalhadas de thumbnails virais.
             
             **💎 Dicas de Ouro de Murilo Silva:**
-            - Busque em inglês (`true crime`, `abandoned places`) para achar canais que pagam 3x mais (RPM alto).
-            - Taxa viral acima de **1.0x** significa que o YouTube está entregando o vídeo para não-inscritos. É ouro puro.
-            - Modele a estrutura (gancho, ritmo, edição) dos vídeos na seção "Modelos para copiar", mas **nunca copie o roteiro palavra por palavra**.
+            - Busque em inglês (`true crime`, `abandoned places`) para achar canais que pagam 3x mais.
+            - Taxa viral acima de **1.0x** significa que o YouTube está entregando o vídeo para não-inscritos.
+            - Modele a estrutura dos vídeos, mas **nunca copie o roteiro palavra por palavra**.
             """)
 
     gr.HTML("""
