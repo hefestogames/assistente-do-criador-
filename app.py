@@ -19,10 +19,13 @@ def brl(v):
     return "R$ " + f"{v:,.2f}".replace(",","X").replace(".",",").replace("X",".")
 
 TABELA_RPM = {
-    " Curiosidades":12, "🔪 Histórias/Crimes":18, "️ Documentário":20,
+    "🎬 Curiosidades":12, "🔪 Histórias/Crimes":18, "️ Documentário":20,
     " Resumo de Filmes":15, " Religião":10, " Motivacional":9,
-    "🎵 Música/Relax":4, "🎮 Games":8, "⚽ Esportes":14,
+    " Música/Relax":4, " Games":8, "⚽ Esportes":14,
     "🚗 Carros":26, "🤖 Tecnologia/IA":35, "💊 Saúde":22, "💰 Finanças":55,
+    "️ Cortes de Podcast":8, "🧘 Meditação":6, "₿ Finanças Cripto":45,
+    "📱 Shorts/TikTok":5, " Marketing Digital":40, "️ Fitness":18,
+    "🍳 Receitas":14, " Pets":16, "✈️ Viagens":28,
 }
 
 # ═══════════════ MOTOR DE BUSCA ═══════════════
@@ -65,10 +68,122 @@ def analisar_canal(url, max_vids=30):
             "bombas":sorted([v for v in videos if v["views"]>statistics.median(views)*2.5],
                             key=lambda x:x["views"],reverse=True)[:3]}
 
-# ═══════════════ CSS NOVO (VERMELHO + BRANCO + CINZA) ═══════════════
+# ═══════════════ GERADOR DE TÍTULOS COM IA ══════════════
+def extrair_padrao_titulo(titulo):
+    """Extrai o padrão do título para replicar"""
+    padroes = {
+        "numero": r"(\d+)",
+        "moeda": r"(\$[\d,]+)",
+        "tempo": r"(\d+\s*(dias?|horas?|minutos?|segundos?|anos?|meses?|semanas?))",
+        "pessoas": r"(\d+\s*(pessoas?|crianças?|adultos?|idosos?))",
+        "comparacao": r"(\$1\s+vs\s+\$[\d,]+)",
+        "desafio": r"(Survive|Last|Fight|Beat|Protect|Escape|Save)",
+        "extremo": r"(World['']s|Most|Deadliest|Fastest|Biggest|Smallest)",
+    }
+    return padroes
+
+def gerar_titulos_ia(url_video, nicho):
+    """Gera 10 títulos baseados em um vídeo de sucesso"""
+    if not url_video or not url_video.strip():
+        return "⚠️ Cole o link de um vídeo do YouTube!"
+    
+    try:
+        opts = {"quiet":True,"no_warnings":True,"skip_download":True,"extract_flat":True}
+        with yt_dlp.YoutubeDL(opts) as ydl:
+            info = ydl.extract_info(url_video, download=False)
+        
+        if not info:
+            return "❌ Não consegui acessar este vídeo. Verifique o link."
+        
+        titulo_original = info.get("title", "")
+        views_original = info.get("view_count", 0)
+        
+        if not titulo_original:
+            return "❌ Não consegui extrair o título deste vídeo."
+        
+        # Extrair elementos do título
+        palavras_chave = re.findall(r'\b\w+\b', titulo_original.lower())
+        numeros = re.findall(r'\d+', titulo_original)
+        
+        # Gerar variações baseadas no padrão
+        titulos_ia = []
+        
+        # Padrão 1: Manter estrutura, mudar números
+        if numeros:
+            num_base = int(numeros[0])
+            for mult in [0.5, 2, 10, 100]:
+                novo_num = int(num_base * mult)
+                novo_titulo = re.sub(r'\d+', str(novo_num), titulo_original, count=1)
+                titulos_ia.append(f"🔢 {novo_titulo}")
+        
+        # Padrão 2: Trocar valores monetários
+        if "$" in titulo_original:
+            valores = ["$1", "$100", "$1,000", "$10,000", "$100,000", "$1,000,000"]
+            for valor in valores[:5]:
+                novo_titulo = re.sub(r'\$[\d,]+', valor, titulo_original)
+                if novo_titulo != titulo_original:
+                    titulos_ia.append(f"💰 {novo_titulo}")
+        
+        # Padrão 3: Trocar períodos de tempo
+        tempos = ["24 Horas", "7 Dias", "30 Dias", "100 Dias", "1 Ano"]
+        for tempo in tempos:
+            novo_titulo = re.sub(r'\d+\s*(dias?|horas?|minutos?)', tempo, titulo_original, flags=re.I)
+            if novo_titulo != titulo_original:
+                titulos_ia.append(f" {novo_titulo}")
+        
+        # Padrão 4: Trocar quantidades de pessoas
+        quantidades = ["10", "50", "100", "500", "1000"]
+        for qtd in quantidades:
+            novo_titulo = re.sub(r'\d+\s*(pessoas?|crianças?|adultos?)', f"{qtd} Pessoas", titulo_original, flags=re.I)
+            if novo_titulo != titulo_original and len(titulos_ia) < 10:
+                titulos_ia.append(f" {novo_titulo}")
+        
+        # Padrão 5: Adicionar elementos de urgência
+        if len(titulos_ia) < 10:
+            titulos_ia.append(f"🚨 URGENTE: {titulo_original}")
+            titulos_ia.append(f"️ ATENÇÃO: {titulo_original}")
+            titulos_ia.append(f"💥 IMPRESSIONANTE: {titulo_original}")
+        
+        # Limitar a 10 títulos
+        titulos_ia = titulos_ia[:10]
+        
+        # Formatar HTML
+        html = f'''
+        <div style="background: linear-gradient(135deg, #1e1b4b, #312e81); padding: 30px; border-radius: 20px; border: 3px solid #f97316; margin-top: 20px; box-shadow: 0 8px 40px rgba(249,115,22,0.4);">
+            <h3 style="color: #fde047 !important; font-size: 28px !important; font-weight: 900; margin-top: 0; text-transform: uppercase; letter-spacing: 2px; font-family: 'Poppins', sans-serif;">
+                📊 Vídeo Original ({fmt(views_original)} views)
+            </h3>
+            <p style="color: #ffffff; font-size: 18px; font-weight: 600; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; border-left: 4px solid #f97316;">
+                {titulo_original}
+            </p>
+            <h3 style="color: #f97316 !important; font-size: 26px !important; font-weight: 800; margin-top: 30px; text-transform: uppercase; letter-spacing: 2px; font-family: 'Poppins', sans-serif;">
+                 10 TÍTULOS GERADOS PELA IA:
+            </h3>
+        '''
+        
+        for i, titulo in enumerate(titulos_ia, 1):
+            html += f'''
+            <div style="background: linear-gradient(135deg, #0f0f1e, #1e1b4b); padding: 18px 25px; border-radius: 12px; margin-bottom: 12px; border-left: 6px solid #f97316; color: #ffffff !important; font-size: 17px !important; font-weight: 600; box-shadow: 0 4px 20px rgba(124,58,237,0.3); transition: all 0.3s;">
+                <span style="color: #fde047; font-weight: 800; margin-right: 10px;">{i}.</span> {titulo}
+            </div>
+            '''
+        
+        html += '''
+            <p style="color: #c4b5fd; font-size: 16px; margin-top: 25px; padding-top: 20px; border-top: 3px solid #6d28d9; text-align: center;">
+                <strong style="color: #fde047; font-size: 18px;">💎 Dica:</strong> Escolha o título que melhor se adapta ao seu público e combine com uma thumbnail impactante!
+            </p>
+        </div>
+        '''
+        
+        return html
+        
+    except Exception as e:
+        return f"❌ Erro ao analisar o vídeo: {str(e)}"
+
+# ═══════════════ CSS COM FONTES MODERNAS ═══════════════
 CSS_BEGINS = """
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Kaushan+Script&family=Norican&family=Inter:wght@400;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800;900&family=Montserrat:wght@400;600;700;800;900&family=Inter:wght@400;600;700&display=swap');
 
 * { 
     font-family: 'Inter', sans-serif !important; 
@@ -76,82 +191,81 @@ CSS_BEGINS = """
 }
 
 body, .gradio-container, .main, .wrap, .gradio-app { 
-    background: #282828 !important; 
+    background: linear-gradient(135deg, #0F0F1E 0%, #1A1A2E 50%, #16213E 100%) !important; 
     color: #ffffff !important;
 }
 
-/* HEADER */
+/* HEADER MODERNO */
 .ac-header { 
-    background: linear-gradient(135deg, #1a1a1a 0%, #282828 50%, #1a1a1a 100%); 
-    border-radius: 0; 
+    background: linear-gradient(135deg, #6D28D9 0%, #7C3AED 50%, #A78BFA 100%); 
+    border-radius: 20px; 
     padding: 50px 40px; 
     text-align: center; 
-    margin: 0 auto 40px; 
-    border-bottom: 6px solid #ff0000; 
-    border-top: 2px solid #ff0000;
-    box-shadow: 0 10px 40px rgba(255,0,0,0.3); 
-    max-width: 1200px;
+    margin: 20px auto 40px; 
+    border: 4px solid #F97316; 
+    box-shadow: 0 0 80px rgba(249,115,22,0.6), 0 15px 60px rgba(124,58,237,0.5); 
     position: relative;
+    max-width: 1200px;
 }
 .ac-header::before {
-    content: '⚠ ALERTA DE OPORTUNIDADE ⚠';
+    content: ' ALERTA DE OPORTUNIDADE ';
     position: absolute;
     top: -14px;
     left: 50%;
     transform: translateX(-50%);
-    background: #ff0000;
-    color: #ffffff;
-    padding: 4px 20px;
-    font-size: 11px;
-    font-weight: 800;
+    background: #F97316;
+    color: #0F0F1E;
+    padding: 6px 24px;
+    font-size: 12px;
+    font-weight: 900;
     letter-spacing: 3px;
-    font-family: 'Inter', sans-serif;
+    font-family: 'Poppins', sans-serif;
+    border-radius: 20px;
 }
 .ac-header h1 { 
     margin: 0; 
-    font-family: 'Kaushan Script', cursive !important;
-    font-size: 72px !important; 
-    font-weight: 400 !important; 
-    color: #ff0000 !important;
-    text-shadow: 3px 3px 0 #000000, 0 0 30px rgba(255,0,0,0.5);
+    font-family: 'Poppins', sans-serif !important;
+    font-size: 64px !important; 
+    font-weight: 900 !important; 
+    color: #FDE047 !important;
+    text-shadow: 0 0 40px rgba(253,224,71,0.8), 0 4px 12px rgba(0,0,0,0.8);
     letter-spacing: 2px;
 }
 .ac-header .begins { 
-    color: #ffffff !important;
+    color: #F97316 !important;
     display: block;
-    font-family: 'Norican', cursive !important;
-    font-size: 80px !important;
-    margin-bottom: 5px;
-    text-shadow: 4px 4px 0 #ff0000, 0 0 40px rgba(255,0,0,0.6);
+    font-family: 'Montserrat', sans-serif !important;
+    font-size: 72px !important;
+    margin-bottom: 10px;
+    font-weight: 900;
+    text-shadow: 0 0 50px rgba(249,115,22,0.9);
 }
 .ac-header .creator { 
-    font-family: 'Norican', cursive !important;
-    font-size: 22px !important; 
-    color: #ffffff !important; 
-    font-weight: 400 !important; 
+    font-family: 'Montserrat', sans-serif !important;
+    font-size: 18px !important; 
+    color: #FED7AA !important; 
+    font-weight: 700 !important; 
     margin-top: 15px; 
-    letter-spacing: 1px;
+    letter-spacing: 2px;
 }
 .ac-header .subtitle { 
     margin: 15px 0 0; 
-    font-size: 18px !important; 
-    color: #bbbbbb !important;
-    font-weight: 400;
-    letter-spacing: 2px;
-    text-transform: uppercase;
+    font-size: 16px !important; 
+    color: #ffffff !important;
+    font-weight: 600;
+    letter-spacing: 1px;
 }
 .ac-header .badge { 
     display: inline-block; 
-    background: #ff0000; 
+    background: linear-gradient(135deg, #F97316, #FB923C); 
     padding: 10px 25px; 
-    border-radius: 0; 
+    border-radius: 25px; 
     font-size: 13px !important; 
     margin-top: 20px; 
-    color: #ffffff !important;
+    color: #0F0F1E !important;
     font-weight: 800 !important;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    border: 2px solid #ffffff;
+    font-family: 'Poppins', sans-serif;
+    box-shadow: 0 4px 20px rgba(249,115,22,0.5);
 }
 
 /* ESTATÍSTICAS */
@@ -167,84 +281,84 @@ body, .gradio-container, .main, .wrap, .gradio-app {
 .stat-card {
     flex: 1;
     max-width: 320px;
-    background: #1a1a1a;
+    background: linear-gradient(135deg, #6D28D9, #7C3AED);
     padding: 30px;
+    border-radius: 20px;
     text-align: center;
-    border-left: 6px solid #ff0000;
-    border-right: 2px solid #aaaaaa;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    border: 3px solid #F97316;
+    box-shadow: 0 8px 40px rgba(124,58,237,0.5);
 }
 .stat-card strong {
     display: block;
-    font-family: 'Norican', cursive !important;
+    font-family: 'Poppins', sans-serif !important;
     font-size: 52px !important;
-    color: #ff0000 !important;
-    font-weight: 400;
+    color: #FDE047 !important;
+    font-weight: 900;
     margin-bottom: 10px;
-    text-shadow: 2px 2px 0 #000000;
+    text-shadow: 0 0 30px rgba(253,224,71,0.6);
 }
 .stat-card span {
-    color: #bbbbbb;
+    color: #FED7AA;
     font-size: 14px !important;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 3px;
+    letter-spacing: 2px;
+    font-family: 'Montserrat', sans-serif;
 }
 
 /* CARDS DE CANAL */
 .ac-card { 
-    background: #1a1a1a;
-    border-radius: 0; 
+    background: linear-gradient(135deg, #1E1B4B 0%, #312E81 50%, #1E1B4B 100%);
+    border-radius: 20px; 
     margin: 25px auto; 
     overflow: hidden; 
-    border-left: 8px solid #ff0000;
-    border-right: 2px solid #aaaaaa;
-    border-top: 2px solid #aaaaaa;
-    border-bottom: 2px solid #aaaaaa;
+    border: 3px solid #8B5CF6;
+    box-shadow: 0 10px 50px rgba(139,92,246,0.4);
     max-width: 1200px;
     transition: all 0.3s;
 }
 .ac-card:hover { 
-    transform: translateX(5px); 
-    box-shadow: -8px 8px 0 #ff0000;
+    transform: translateY(-5px) scale(1.01); 
+    box-shadow: 0 15px 70px rgba(249,115,22,0.6);
+    border-color: #F97316;
 }
 .ac-card-head { 
     padding: 25px 30px; 
     display: flex; 
     justify-content: space-between; 
     align-items: center; 
-    border-bottom: 2px solid #ff0000; 
-    background: #282828;
+    border-bottom: 3px solid #6D28D9; 
+    background: linear-gradient(135deg, #0F0F1E, #1E1B4B);
 }
 .ac-card-head h3 { 
     margin: 0; 
-    font-family: 'Kaushan Script', cursive !important;
-    font-size: 32px !important; 
+    font-family: 'Poppins', sans-serif !important;
+    font-size: 26px !important; 
     color: #ffffff !important; 
-    font-weight: 400;
+    font-weight: 800;
 }
 .ac-badge { 
     padding: 10px 20px; 
+    border-radius: 20px; 
     font-size: 13px !important; 
     font-weight: 800;
     text-transform: uppercase;
-    letter-spacing: 2px;
-    border: 2px solid;
+    letter-spacing: 1px;
+    font-family: 'Montserrat', sans-serif;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
 }
 .ac-badge-rocket { 
-    background: #ff0000; 
+    background: linear-gradient(135deg, #F97316, #EA580C); 
     color: #ffffff !important;
-    border-color: #ffffff;
+    box-shadow: 0 4px 20px rgba(249,115,22,0.5);
 }
 .ac-badge-up { 
-    background: #ffffff; 
-    color: #282828 !important;
-    border-color: #ff0000;
+    background: linear-gradient(135deg, #FDE047, #FBBF24); 
+    color: #0F0F1E !important;
 }
 .ac-badge-sleep { 
-    background: #aaaaaa; 
-    color: #282828 !important;
-    border-color: #282828;
+    background: linear-gradient(135deg, #64748B, #475569); 
+    color: #ffffff !important;
 }
 
 .ac-card-body { 
@@ -252,250 +366,269 @@ body, .gradio-container, .main, .wrap, .gradio-app {
     display: grid; 
     grid-template-columns: repeat(4, 1fr); 
     gap: 15px; 
-    background: #1a1a1a;
 }
 .ac-stat-mini { 
-    background: #282828;
+    background: linear-gradient(135deg, #0F0F1E, #1E1B4B);
     padding: 20px; 
+    border-radius: 15px; 
     text-align: center; 
-    border: 1px solid #aaaaaa;
+    border: 2px solid #6D28D9;
+    box-shadow: 0 4px 20px rgba(109,40,217,0.3);
 }
 .ac-stat-mini .lbl { 
-    font-size: 11px !important; 
-    color: #bbbbbb !important; 
+    font-size: 12px !important; 
+    color: #C4B5FD !important; 
     text-transform: uppercase; 
     font-weight: 700;
-    letter-spacing: 2px;
+    letter-spacing: 1px;
     margin-bottom: 8px;
+    font-family: 'Montserrat', sans-serif;
 }
 .ac-stat-mini .val { 
-    font-family: 'Norican', cursive !important;
-    font-size: 32px !important; 
-    font-weight: 400; 
-    color: #ffffff !important;
+    font-family: 'Poppins', sans-serif !important;
+    font-size: 30px !important; 
+    font-weight: 900; 
+    color: #FDE047 !important;
+    text-shadow: 0 0 20px rgba(253,224,71,0.5);
 }
 
 .ac-money { 
-    background: #ff0000;
+    background: linear-gradient(135deg, #6D28D9, #7C3AED);
     padding: 25px 30px; 
     display: flex; 
     justify-content: space-between; 
     align-items: center; 
-    border-top: 2px solid #ffffff;
-    border-bottom: 2px solid #ffffff;
+    border-top: 3px solid #6D28D9;
+    border-bottom: 3px solid #6D28D9;
 }
 .ac-money strong { 
-    font-family: 'Norican', cursive !important;
-    font-size: 40px !important; 
-    color: #ffffff !important; 
-    font-weight: 400;
-    text-shadow: 2px 2px 0 #000000;
+    font-family: 'Poppins', sans-serif !important;
+    font-size: 38px !important; 
+    color: #FDE047 !important; 
+    font-weight: 900;
+    text-shadow: 0 0 30px rgba(253,224,71,0.6);
 }
 .ac-money .label {
     font-size: 12px !important;
-    color: #ffffff !important;
-    font-weight: 800;
+    color: #E9D5FF !important;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 2px;
+    letter-spacing: 1px;
+    font-family: 'Montserrat', sans-serif;
 }
 
 .ac-bombas { 
     padding: 25px 30px; 
-    background: #282828;
-    border-top: 2px solid #aaaaaa;
+    background: rgba(249,115,22,0.1);
+    border-top: 3px solid #6D28D9;
 }
 .ac-bombas h4 { 
     margin: 0 0 15px; 
-    color: #ff0000 !important; 
-    font-size: 16px !important; 
+    color: #F97316 !important; 
+    font-size: 18px !important; 
     text-transform: uppercase; 
-    letter-spacing: 3px; 
+    letter-spacing: 2px; 
     font-weight: 800;
+    font-family: 'Poppins', sans-serif;
 }
 .ac-bomba { 
     padding: 15px; 
     font-size: 15px !important; 
-    border-bottom: 1px dashed #aaaaaa; 
+    border-bottom: 2px dashed #6D28D9; 
     color: #ffffff !important;
-    background: #1a1a1a;
+    background: rgba(15,15,30,0.6);
+    border-radius: 8px;
     margin-bottom: 10px;
-    border-left: 4px solid #ff0000;
 }
-.ac-bomba:last-child { border-bottom: none; }
+.ac-bomba:last-child { border: none; }
 .ac-bomba a { 
-    color: #ffffff !important; 
+    color: #A78BFA !important; 
     text-decoration: none; 
     font-weight: 700;
     font-size: 15px !important;
 }
 .ac-bomba a:hover { 
-    color: #ff0000 !important;
+    color: #F97316 !important;
     text-decoration: underline;
 }
 .ac-bomba .v { 
-    color: #ff0000 !important; 
+    color: #FDE047 !important; 
     font-weight: 900; 
     margin-right: 15px;
     font-size: 18px !important;
+    font-family: 'Poppins', sans-serif;
 }
 
 .ac-foot { 
     padding: 20px; 
     text-align: center; 
-    background: #1a1a1a;
-    border-top: 2px solid #aaaaaa;
+    background: linear-gradient(135deg, #0F0F1E, #1E1B4B);
 }
 .ac-foot a { 
-    color: #ffffff !important; 
+    color: #F97316 !important; 
     text-decoration: none; 
     font-weight: 800; 
     font-size: 16px !important;
-    letter-spacing: 3px;
+    letter-spacing: 1px;
     text-transform: uppercase;
     display: inline-block;
     padding: 12px 35px;
-    background: #ff0000;
-    border: 2px solid #ffffff;
+    border: 2px solid #F97316;
+    border-radius: 12px;
     transition: all 0.3s;
+    font-family: 'Montserrat', sans-serif;
 }
 .ac-foot a:hover { 
-    background: #ffffff;
-    color: #ff0000 !important;
+    background: #F97316;
+    color: #0F0F1E !important;
+    transform: scale(1.05);
+    box-shadow: 0 0 30px rgba(249,115,22,0.6);
 }
 
 /* GERADOR DE TÍTULOS */
 .title-gen-box { 
-    background: #1a1a1a; 
+    background: linear-gradient(135deg, #1E1B4B, #312E81); 
     padding: 30px; 
-    border-left: 8px solid #ff0000;
-    border-right: 2px solid #aaaaaa;
-    border-top: 2px solid #aaaaaa;
-    border-bottom: 2px solid #aaaaaa;
+    border-radius: 20px; 
+    border: 3px solid #F97316; 
     margin-top: 20px;
+    box-shadow: 0 8px 40px rgba(249,115,22,0.4);
 }
 .title-gen-box h3 {
-    font-family: 'Kaushan Script', cursive !important;
-    color: #ff0000 !important;
-    font-size: 32px !important;
-    font-weight: 400;
+    color: #FDE047 !important;
+    font-family: 'Poppins', sans-serif !important;
+    font-size: 26px !important;
+    font-weight: 900;
     margin-top: 0;
+    text-transform: uppercase;
+    letter-spacing: 2px;
 }
 .title-gen-item { 
-    background: #282828; 
+    background: linear-gradient(135deg, #0F0F1E, #1E1B4B); 
     padding: 18px 25px; 
+    border-radius: 12px; 
     margin-bottom: 12px; 
-    border-left: 4px solid #ff0000; 
+    border-left: 6px solid #F97316; 
     color: #ffffff !important; 
     font-size: 16px !important;
     font-weight: 600;
+    box-shadow: 0 4px 20px rgba(124,58,237,0.3);
     transition: all 0.3s;
+    font-family: 'Inter', sans-serif;
 }
 .title-gen-item:hover {
-    background: #ff0000;
     transform: translateX(10px);
+    background: linear-gradient(135deg, #312E81, #6D28D9);
+    border-left-color: #FDE047;
+    box-shadow: 0 6px 30px rgba(249,115,22,0.5);
 }
 
 /* RODAPÉ */
 .footer-creator { 
     text-align: center; 
     padding: 50px 30px; 
-    color: #bbbbbb !important; 
+    color: #A78BFA !important; 
     font-size: 14px !important; 
-    border-top: 6px solid #ff0000; 
+    border-top: 3px solid #6D28D9; 
     margin-top: 60px; 
-    background: #1a1a1a;
+    background: linear-gradient(135deg, #0F0F1E, #1E1B4B);
+    border-radius: 0 0 20px 20px;
 }
 .footer-creator strong { 
-    color: #ffffff !important; 
-    font-weight: 800;
-    font-size: 18px !important;
+    color: #FDE047 !important; 
+    font-weight: 900;
+    font-size: 16px !important;
+    font-family: 'Poppins', sans-serif;
 }
 .footer-creator .begins-mark { 
     display: inline-block; 
-    font-family: 'Kaushan Script', cursive !important;
-    color: #ff0000 !important; 
-    font-size: 48px !important;
+    color: #F97316 !important; 
+    font-weight: 900; 
+    font-size: 40px !important;
+    letter-spacing: 3px;
     margin-bottom: 15px;
+    text-transform: uppercase;
+    font-family: 'Montserrat', sans-serif;
+    text-shadow: 0 0 30px rgba(249,115,22,0.6);
 }
 
 /* COMPONENTES GRADIO */
 .gr-box, .gr-input, .gr-dropdown, .gr-slider, .gr-textbox { 
-    background: #1a1a1a !important; 
-    border: 2px solid #aaaaaa !important; 
+    background: linear-gradient(135deg, #1E1B4B, #312E81) !important; 
+    border: 2px solid #8B5CF6 !important; 
     color: #ffffff !important;
-    border-radius: 0 !important;
+    border-radius: 12px !important;
 }
 .gr-input, .gr-textbox input {
     color: #ffffff !important;
     font-size: 16px !important;
     font-weight: 600;
-    background: #282828 !important;
+    font-family: 'Inter', sans-serif;
 }
 .gr-dropdown .wrap { 
-    background: #1a1a1a !important; 
-    border: 2px solid #aaaaaa !important;
+    background: linear-gradient(135deg, #1E1B4B, #312E81) !important; 
+    border: 2px solid #8B5CF6 !important;
 }
 .gr-dropdown .wrap span { 
     color: #ffffff !important;
     font-size: 15px !important;
     font-weight: 600;
+    font-family: 'Inter', sans-serif;
 }
 .gr-button-primary { 
-    background: #ff0000 !important; 
-    border: 3px solid #ffffff !important; 
-    color: #ffffff !important; 
+    background: linear-gradient(135deg, #F97316, #EA580C) !important; 
+    border: 3px solid #F97316 !important; 
+    color: #0F0F1E !important; 
     font-weight: 900 !important; 
-    letter-spacing: 3px !important;
+    letter-spacing: 2px !important;
     font-size: 18px !important;
     text-transform: uppercase;
     padding: 18px 40px !important;
-    border-radius: 0 !important;
-    box-shadow: 0 4px 0 #000000 !important;
-    transition: all 0.1s !important;
+    border-radius: 12px !important;
+    box-shadow: 0 8px 40px rgba(249,115,22,0.6) !important;
+    transition: all 0.3s !important;
+    font-family: 'Poppins', sans-serif;
 }
 .gr-button-primary:hover { 
-    background: #ffffff !important; 
-    color: #ff0000 !important;
-    transform: translateY(-2px);
-    box-shadow: 0 6px 0 #000000 !important;
-}
-.gr-button-primary:active {
-    transform: translateY(2px);
-    box-shadow: 0 2px 0 #000000 !important;
+    background: linear-gradient(135deg, #FB923C, #F97316) !important; 
+    transform: translateY(-3px) scale(1.05);
+    box-shadow: 0 12px 60px rgba(249,115,22,0.8) !important;
 }
 .gr-tabs .selected { 
-    border-bottom: 4px solid #ff0000 !important; 
-    color: #ffffff !important;
+    border-bottom: 4px solid #F97316 !important; 
+    color: #F97316 !important;
     font-weight: 800 !important;
     font-size: 16px !important;
-    background: #ff0000 !important;
-    padding: 10px 20px;
+    font-family: 'Poppins', sans-serif;
 }
 .gr-tabs .unselected { 
-    color: #bbbbbb !important;
+    color: #A78BFA !important;
     font-size: 16px !important;
-    background: #282828 !important;
-    padding: 10px 20px;
+    font-family: 'Montserrat', sans-serif;
 }
 .gr-slider .label {
-    color: #ffffff !important;
+    color: #F97316 !important;
     font-weight: 700 !important;
     font-size: 14px !important;
     text-transform: uppercase;
-    letter-spacing: 2px;
+    letter-spacing: 1px;
+    font-family: 'Montserrat', sans-serif;
 }
 .gr-check label {
     color: #ffffff !important;
     font-size: 15px !important;
     font-weight: 600;
+    font-family: 'Inter', sans-serif;
 }
 .gr-markdown, .gr-markdown p, .gr-markdown h3 {
     color: #ffffff !important;
+    font-family: 'Inter', sans-serif !important;
 }
 .gr-markdown h3 {
-    color: #ff0000 !important;
-    font-family: 'Kaushan Script', cursive !important;
-    font-size: 28px !important;
+    color: #F97316 !important;
+    font-family: 'Poppins', sans-serif !important;
+    font-size: 24px !important;
+    font-weight: 800;
 }
 </style>
 """
@@ -503,42 +636,42 @@ body, .gradio-container, .main, .wrap, .gradio-app {
 def render_cards(resultados):
     html = [CSS_BEGINS,'<div class="ac-wrap">']
     if not resultados:
-        html.append('<div style="text-align:center;padding:80px 20px;background:#1a1a1a;border-left:8px solid #ff0000;border-right:2px solid #aaaaaa;border-top:2px solid #aaaaaa;border-bottom:2px solid #aaaaaa;margin:40px auto;max-width:800px;"><h3 style="font-family:Kaushan Script,cursive;font-size:36px;color:#ff0000;margin-bottom:20px">Nenhum canal encontrado</h3><p style="font-size:18px;color:#bbbbbb">Tente outra palavra ou faixa de inscritos.</p></div>')
+        html.append('<div style="text-align:center;padding:80px 20px;background:linear-gradient(135deg,#1E1B4B,#312E81);border-radius:20px;color:#ffffff;border:3px solid #F97316;box-shadow:0 10px 50px rgba(249,115,22,0.5);margin:40px auto;max-width:800px;"><h3 style="font-family:Poppins,sans-serif;font-size:32px;color:#FDE047;margin-bottom:20px">😕 Nenhum canal encontrado</h3><p style="font-size:18px;color:#C4B5FD">Tente outra palavra ou faixa de inscritos.</p></div>')
     else:
         est = sum(1 for r in resultados if r["status"]=="ESTOURANDO")
         gm = sum(r["ganho_video"] for r in resultados)/len(resultados)
         html.append(f'''<div class="stats-container">
             <div class="stat-card"><strong>{len(resultados)}</strong><span>Canais</span></div>
-            <div class="stat-card"><strong>{est}</strong><span>Estourando</span></div>
+            <div class="stat-card"><strong>{est} 🚀</strong><span>Estourando</span></div>
             <div class="stat-card"><strong>{brl(gm)}</strong><span>Ganho médio/vídeo</span></div>
         </div>''')
         for r in resultados:
             bc = "rocket" if r["status"]=="ESTOURANDO" else ("up" if r["status"]=="Saudável" else "sleep")
             html.append(f'''<div class="ac-card"><div class="ac-card-head"><h3>{r['emoji']} {r['nome']}</h3><span class="ac-badge ac-badge-{bc}">{r['status']}</span></div>
 <div class="ac-card-body">
-<div class="ac-stat-mini"><div class="lbl">Inscritos</div><div class="val">{fmt(r['inscritos'])}</div></div>
-<div class="ac-stat-mini"><div class="lbl">Views/vídeo</div><div class="val">{fmt(r['media_rec'])}</div></div>
-<div class="ac-stat-mini"><div class="lbl">Taxa viral</div><div class="val">{r['taxa']:.2f}x</div></div>
-<div class="ac-stat-mini"><div class="lbl">Mediana</div><div class="val">{fmt(r['mediana'])}</div></div></div>
-<div class="ac-money"><div><div class="label">Ganho por vídeo</div><strong>{brl(r['ganho_video'])}</strong></div>
-<div style="text-align:right"><div class="label">Total do canal</div><strong>{brl((r['views_totais'] or sum(v['views'] for v in r['videos']))/1000*r['rpm'])}</strong></div></div>''')
+<div class="ac-stat-mini"><div class="lbl">👥 Inscritos</div><div class="val">{fmt(r['inscritos'])}</div></div>
+<div class="ac-stat-mini"><div class="lbl">📈 Views/vídeo</div><div class="val">{fmt(r['media_rec'])}</div></div>
+<div class="ac-stat-mini"><div class="lbl">🔥 Taxa viral</div><div class="val">{r['taxa']:.2f}x</div></div>
+<div class="ac-stat-mini"><div class="lbl">📊 Mediana</div><div class="val">{fmt(r['mediana'])}</div></div></div>
+<div class="ac-money"><div><div class="label">GANHO POR VÍDEO</div><strong>{brl(r['ganho_video'])}</strong></div>
+<div style="text-align:right"><div class="label">TOTAL DO CANAL</div><strong>{brl((r['views_totais'] or sum(v['views'] for v in r['videos']))/1000*r['rpm'])}</strong></div></div>''')
             if r['bombas']:
-                html.append('<div class="ac-bombas"><h4>Modelos para copiar</h4>')
+                html.append('<div class="ac-bombas"><h4>🧬 Modelos para copiar</h4>')
                 for b in r['bombas']:
                     html.append(f'<div class="ac-bomba"><span class="v">{fmt(b["views"])}</span><a href="{b["url"]}" target="_blank">{b["titulo"][:70]}{"..." if len(b["titulo"])>70 else ""}</a></div>')
                 html.append('</div>')
-            html.append(f'<div class="ac-foot"><a href="{r["url"]}" target="_blank">Abrir canal no YouTube →</a></div></div>')
+            html.append(f'<div class="ac-foot"><a href="{r["url"]}" target="_blank">🔗 ABRIR CANAL NO YOUTUBE →</a></div></div>')
     html.append('</div>')
     return "".join(html)
 
 # ═══════════════ FUNÇÕES ═══════════════
 def cacar(palavra, nicho_label, qtd, insc_min, insc_max, vids, estrangeiro):
     if not palavra or not palavra.strip():
-        return "<div style='padding:60px;text-align:center;color:#ff0000;font-size:22px;font-weight:700;background:#1a1a1a;border-left:8px solid #ff0000;border-right:2px solid #aaaaaa;border-top:2px solid #aaaaaa;border-bottom:2px solid #aaaaaa;margin:40px auto;max-width:800px;font-family:Kaushan Script,cursive'>Digite o que você quer caçar!</div>", None
+        return "<div style='padding:60px;text-align:center;color:#F97316;font-size:24px;font-weight:700;background:linear-gradient(135deg,#1E1B4B,#312E81);border-radius:20px;border:3px solid #F97316;box-shadow:0 10px 50px rgba(249,115,22,0.5);margin:40px auto;max-width:800px;font-family:Poppins,sans-serif'>⚠️ Digite o que você quer caçar!</div>", None
     RPM = TABELA_RPM.get(nicho_label,12) * (3.2 if estrangeiro else 1.0)
     vids_achados = buscar_videos(palavra, 50)
     if not vids_achados:
-        return "<div style='padding:60px;text-align:center;color:#ff0000;font-size:22px;font-weight:700;background:#1a1a1a;border-left:8px solid #ff0000;border-right:2px solid #aaaaaa;border-top:2px solid #aaaaaa;border-bottom:2px solid #aaaaaa;margin:40px auto;max-width:800px;font-family:Kaushan Script,cursive'>Nada encontrado. Tente outra palavra.</div>", None
+        return "<div style='padding:60px;text-align:center;color:#F97316;font-size:24px;font-weight:700;background:linear-gradient(135deg,#1E1B4B,#312E81);border-radius:20px;border:3px solid #F97316;box-shadow:0 10px 50px rgba(249,115,22,0.5);margin:40px auto;max-width:800px;font-family:Poppins,sans-serif'> Nada encontrado. Tente outra palavra.</div>", None
     canais = {}
     for v in vids_achados:
         uc = v.get("channel_url") or v.get("uploader_url")
@@ -550,7 +683,7 @@ def cacar(palavra, nicho_label, qtd, insc_min, insc_max, vids, estrangeiro):
         ins = a["inscritos"]
         if ins is None or ins<insc_min or ins>insc_max: continue
         tx = a["taxa"] or 0
-        a["status"], a["emoji"] = ("ESTOURANDO","🚀") if tx>=1.0 else (("Saudável","") if tx>=0.3 else ("Estagnado","😴"))
+        a["status"], a["emoji"] = ("ESTOURANDO","🚀") if tx>=1.0 else (("Saudável","📈") if tx>=0.3 else ("Estagnado","😴"))
         a["rpm"] = RPM; a["ganho_video"] = a["media_rec"]/1000*RPM
         resultados.append(a)
         if len(resultados)>=int(qtd): break
@@ -571,7 +704,7 @@ def cacar(palavra, nicho_label, qtd, insc_min, insc_max, vids, estrangeiro):
 
 def analisar_canal_ui(url_canal, nicho_label, vids, estrangeiro):
     if not url_canal or not url_canal.strip():
-        return "<div style='padding:60px;text-align:center;color:#ff0000;font-size:22px;font-weight:700;background:#1a1a1a;border-left:8px solid #ff0000;border-right:2px solid #aaaaaa;border-top:2px solid #aaaaaa;border-bottom:2px solid #aaaaaa;margin:40px auto;max-width:800px;font-family:Kaushan Script,cursive'>Cole o link do canal!</div>"
+        return "<div style='padding:60px;text-align:center;color:#F97316;font-size:24px;font-weight:700;background:linear-gradient(135deg,#1E1B4B,#312E81);border-radius:20px;border:3px solid #F97316;box-shadow:0 10px 50px rgba(249,115,22,0.5);margin:40px auto;max-width:800px;font-family:Poppins,sans-serif'>️ Cole o link do canal!</div>"
     RPM = TABELA_RPM.get(nicho_label,12) * (3.2 if estrangeiro else 1.0)
     url = url_canal.strip()
     if url.startswith("@"): url = "https://www.youtube.com/" + url
@@ -579,15 +712,15 @@ def analisar_canal_ui(url_canal, nicho_label, vids, estrangeiro):
         url = "https://www.youtube.com/channel/"+url if url.startswith("UC") else "https://www.youtube.com/"+url
     a = analisar_canal(url, int(vids))
     if a is None:
-        return "<div style='padding:60px;text-align:center;color:#ff0000;font-size:22px;font-weight:700;background:#1a1a1a;border-left:8px solid #ff0000;border-right:2px solid #aaaaaa;border-top:2px solid #aaaaaa;border-bottom:2px solid #aaaaaa;margin:40px auto;max-width:800px;font-family:Kaushan Script,cursive'>Canal não encontrado. Verifique o link.</div>"
+        return "<div style='padding:60px;text-align:center;color:#F97316;font-size:24px;font-weight:700;background:linear-gradient(135deg,#1E1B4B,#312E81);border-radius:20px;border:3px solid #F97316;box-shadow:0 10px 50px rgba(249,115,22,0.5);margin:40px auto;max-width:800px;font-family:Poppins,sans-serif'>❌ Canal não encontrado. Verifique o link.</div>"
     tx = a["taxa"] or 0
     a["status"], a["emoji"] = ("ESTOURANDO","🚀") if tx>=1.0 else (("Saudável","📈") if tx>=0.3 else ("Estagnado","😴"))
     a["rpm"] = RPM; a["ganho_video"] = a["media_rec"]/1000*RPM
     return render_cards([a])
 
-def gerar_titulos(nicho, palavra_chave):
+def gerar_titulos_simples(nicho, palavra_chave):
     if not palavra_chave:
-        return "<div style='padding:40px;text-align:center;color:#ff0000;font-size:20px'>Digite uma palavra-chave (ex: 'carros abandonados', 'casos criminais').</div>"
+        return "<div style='padding:40px;text-align:center;color:#F97316;font-size:20px;font-family:Poppins,sans-serif'>⚠️ Digite uma palavra-chave (ex: 'carros abandonados', 'casos criminais').</div>"
     kw = palavra_chave.strip().title()
     titulos = [
         f"🚨 A Verdade Sombria Sobre {kw} Que Ninguém Te Conta",
@@ -598,82 +731,91 @@ def gerar_titulos(nicho, palavra_chave):
         f"🔥 Top 10 Maiores Mistérios de {kw} Resolvidos",
         f"💀 Eu Investi 30 Dias Estudando {kw} e o Resultado Foi Assustador"
     ]
-    html = f'<div class="title-gen-box"><h3>7 TÍTULOS DE ALTA CONVERSÃO PARA: "{kw}"</h3>'
+    html = f'<div class="title-gen-box"><h3>💡 7 TÍTULOS DE ALTA CONVERSÃO PARA: "{kw}"</h3>'
     for t in titulos:
         html += f'<div class="title-gen-item">{t}</div>'
-    html += '<p style="color:#bbbbbb;font-size:16px;margin-top:25px;padding-top:20px;border-top:2px solid #aaaaaa"><strong style="color:#ff0000;font-size:18px">Dica de Murilo Silva:</strong><br>Combine estes títulos com thumbnails de alto contraste — rosto com expressão forte + seta vermelha + texto curto em até 3 palavras.</p></div>'
+    html += '<p style="color:#C4B5FD;font-size:16px;margin-top:25px;padding-top:20px;border-top:3px solid #6D28D9"><strong style="color:#FDE047;font-size:18px;font-family:Poppins,sans-serif">💎 Dica de Murilo Silva:</strong><br>Combine estes títulos com thumbnails de alto contraste — rosto com expressão forte + seta vermelha + texto curto em até 3 palavras.</p></div>'
     return html
 
-# ═══════════════ INTERFACE ═══════════════
+# ═══════════════ INTERFACE ══════════════
 begins_theme = gr.themes.Base(
-    primary_hue="red",
-    secondary_hue="neutral",
-    neutral_hue="neutral",
+    primary_hue="orange",
+    secondary_hue="purple",
+    neutral_hue="slate",
     font=[gr.themes.GoogleFont("Inter"), "ui-sans-serif", "system-ui", "sans-serif"]
 )
 
 with gr.Blocks(title="Begins · Assistente do Criador", theme=begins_theme) as app:
     gr.HTML("""
     <div class="ac-header">
-        <h1><span class="begins">BEGINS</span>Assistente do Criador</h1>
-        <div class="creator">Murilo Silva</div>
+        <h1><span class="begins">🐘 BEGINS</span>Assistente do Criador</h1>
+        <div class="creator">Murilo Silva · Criador de Conteúdo</div>
         <p class="subtitle">O ponto de partida para o seu novo negócio no YouTube</p>
-        <span class="badge">Versão 7.0</span>
+        <span class="badge">✨ Versão 8.0 · Com IA Generativa</span>
     </div>
     """)
     
     with gr.Tabs():
         with gr.Tab("🕵️ Caçador de Canais"):
-            gr.Markdown("### Encontre canais que estão estourando e modele o sucesso")
+            gr.Markdown("### 🔍 Encontre canais que estão estourando e modele o sucesso")
             with gr.Row():
                 with gr.Column(scale=2):
-                    palavra = gr.Textbox(label="O que caçar?", placeholder="Ex: histórias de terror, carros abandonados, true crime...")
+                    palavra = gr.Textbox(label="🎯 O que caçar?", placeholder="Ex: histórias de terror, carros abandonados, true crime...")
                 with gr.Column(scale=1):
-                    nicho = gr.Dropdown(list(TABELA_RPM.keys()), value="🔪 Histórias/Crimes", label="Nicho")
+                    nicho = gr.Dropdown(list(TABELA_RPM.keys()), value="🔪 Histórias/Crimes", label="💰 Nicho")
             with gr.Row():
-                qtd = gr.Slider(3,20,value=8,step=1,label="Quantos canais")
-                vids_caca = gr.Slider(10,50,value=30,step=5,label="Vídeos por canal")
+                qtd = gr.Slider(3,20,value=8,step=1,label="📊 Quantos canais")
+                vids_caca = gr.Slider(10,50,value=30,step=5,label="🎬 Vídeos por canal")
             with gr.Row():
-                insc_min = gr.Slider(1000,100000,value=10000,step=1000,label="Inscritos mín.")
-                insc_max = gr.Slider(50000,2000000,value=500000,step=10000,label="Inscritos máx.")
-            estrangeiro = gr.Checkbox(True, label="Público estrangeiro (paga 3x mais)")
-            btn = gr.Button("INICIAR CAÇADA", variant="primary", size="lg")
+                insc_min = gr.Slider(1000,100000,value=10000,step=1000,label="👥 Inscritos mín.")
+                insc_max = gr.Slider(50000,2000000,value=500000,step=10000,label="👥 Inscritos máx.")
+            estrangeiro = gr.Checkbox(True, label="🌍 Público estrangeiro (paga 3x mais)")
+            btn = gr.Button("🚀 INICIAR CAÇADA", variant="primary", size="lg")
             out_html = gr.HTML()
-            out_csv = gr.File(label="Baixar Relatório (CSV)")
+            out_csv = gr.File(label="📥 Baixar Relatório Begins (CSV)")
             btn.click(fn=cacar, inputs=[palavra,nicho,qtd,insc_min,insc_max,vids_caca,estrangeiro], outputs=[out_html,out_csv])
 
         with gr.Tab("🔎 Analisar Canal"):
-            gr.Markdown("### Cole o link de um canal para uma auditoria completa")
-            url_analise = gr.Textbox(label="Link ou @ do canal", placeholder="https://www.youtube.com/@NomeDoCanal")
+            gr.Markdown("### 🔗 Cole o link de um canal para uma auditoria completa")
+            url_analise = gr.Textbox(label="📎 Link ou @ do canal", placeholder="https://www.youtube.com/@NomeDoCanal")
             with gr.Row():
-                nicho2 = gr.Dropdown(list(TABELA_RPM.keys()), value="🎬 Curiosidades", label="Nicho")
-                vids_analise = gr.Slider(10,50,value=30,step=5,label="Vídeos para analisar")
-            estrangeiro2 = gr.Checkbox(False, label="Canal em inglês/espanhol?")
-            btn2 = gr.Button("AUDITAR CANAL", variant="primary", size="lg")
+                nicho2 = gr.Dropdown(list(TABELA_RPM.keys()), value="🎬 Curiosidades", label="💰 Nicho")
+                vids_analise = gr.Slider(10,50,value=30,step=5,label=" Vídeos para analisar")
+            estrangeiro2 = gr.Checkbox(False, label="🌍 Canal em inglês/espanhol?")
+            btn2 = gr.Button("📊 AUDITAR CANAL", variant="primary", size="lg")
             out2 = gr.HTML()
             btn2.click(fn=analisar_canal_ui, inputs=[url_analise,nicho2,vids_analise,estrangeiro2], outputs=out2)
 
-        with gr.Tab("🧠 Gerador de Títulos"):
-            gr.Markdown("### Crie títulos que o algoritmo do YouTube é obrigado a recomendar")
-            gr.Markdown("Baseado nas fórmulas de copywriting dos maiores canais Dark do mundo.")
+        with gr.Tab("🧠 Gerador de Títulos IA"):
+            gr.Markdown("### ✍️ Cole o link de um vídeo que estourou e receba 10 ideias de títulos no mesmo estilo")
+            gr.Markdown("A IA analisa o padrão do vídeo viral e gera variações otimizadas para você.")
+            url_video_ia = gr.Textbox(label=" Link do vídeo viral", placeholder="https://www.youtube.com/watch?v=XXXXX")
+            nicho_ia = gr.Dropdown(list(TABELA_RPM.keys()), value="🔪 Histórias/Crimes", label="💰 Nicho do Canal")
+            btn_ia = gr.Button("✨ GERAR 10 TÍTULOS COM IA", variant="primary", size="lg")
+            out_ia = gr.HTML()
+            btn_ia.click(fn=gerar_titulos_ia, inputs=[url_video_ia, nicho_ia], outputs=out_ia)
+
+        with gr.Tab("📝 Gerador de Títulos"):
+            gr.Markdown("### 📝 Crie títulos baseados em fórmulas virais comprovadas")
             with gr.Row():
                 with gr.Column(scale=1):
-                    nicho_gen = gr.Dropdown(list(TABELA_RPM.keys()), value=" Histórias/Crimes", label="Nicho do Canal")
+                    nicho_gen = gr.Dropdown(list(TABELA_RPM.keys()), value="🔪 Histórias/Crimes", label="💰 Nicho do Canal")
                 with gr.Column(scale=2):
-                    kw_gen = gr.Textbox(label="Palavra-chave ou Tema do Vídeo", placeholder="Ex: navio fantasma, loteria não reclamada, mansão abandonada")
-            btn_gen = gr.Button("GERAR TÍTULOS", variant="primary", size="lg")
+                    kw_gen = gr.Textbox(label=" Palavra-chave ou Tema do Vídeo", placeholder="Ex: navio fantasma, loteria não reclamada, mansão abandonada")
+            btn_gen = gr.Button("📝 GERAR 7 TÍTULOS", variant="primary", size="lg")
             out_gen = gr.HTML()
-            btn_gen.click(fn=gerar_titulos, inputs=[nicho_gen, kw_gen], outputs=out_gen)
+            btn_gen.click(fn=gerar_titulos_simples, inputs=[nicho_gen, kw_gen], outputs=out_gen)
 
         with gr.Tab("💡 Guia"):
             gr.Markdown("""
-            ### Como usar o Begins
+            ### 📖 Como usar o Begins · Assistente do Criador
             
-            **1. Caçador de Canais:** Digite o tema, escolha o nicho e clique em INICIAR CAÇADA. Foque nos canais marcados como ESTOURANDO.
-            **2. Analisador:** Já tem um concorrente? Cole o link e veja a média real de views (esqueça o número total de inscritos, olhe a mediana!).
-            **3. Gerador de Títulos:** Use esta aba para criar títulos infalíveis baseados no tema que você escolheu.
+            **1. 🕵️ Caçador de Canais:** Digite o tema, escolha o nicho e clique em INICIAR CAÇADA. Foque nos canais marcados com 🚀 ESTOURANDO.
+            **2. 🔎 Analisador:** Já tem um concorrente? Cole o link e veja a média real de views (esqueça o número total de inscritos, olhe a mediana!).
+            **3. 🧠 Gerador de Títulos IA:** Cole o link de um vídeo viral e receba 10 ideias de títulos no mesmo estilo.
+            **4. 📝 Gerador de Títulos:** Use fórmulas comprovadas para criar títulos baseados em palavras-chave.
             
-            **Dicas de Murilo Silva:**
+            **💎 Dicas de Ouro de Murilo Silva:**
             - Busque em inglês (`true crime`, `abandoned places`) para achar canais que pagam 3x mais (RPM alto).
             - Taxa viral acima de **1.0x** significa que o YouTube está entregando o vídeo para não-inscritos. É ouro puro.
             - Modele a estrutura (gancho, ritmo, edição) dos vídeos na seção "Modelos para copiar", mas **nunca copie o roteiro palavra por palavra**.
@@ -681,9 +823,9 @@ with gr.Blocks(title="Begins · Assistente do Criador", theme=begins_theme) as a
 
     gr.HTML("""
     <div class="footer-creator">
-        <div class="begins-mark">BEGINS</div><br>
+        <div class="begins-mark">🐘 BEGINS</div>
         <strong>O ponto de partida para o seu novo negócio.</strong><br><br>
-        Desenvolvido por <strong>Murilo Silva</strong><br>
+        Desenvolvido por <strong>Murilo Silva</strong> · Criador de Conteúdo<br>
         <span style="font-size:11px;opacity:0.5;margin-top:20px;display:inline-block">Ferramenta para fins educacionais e de pesquisa de mercado.</span>
     </div>
     """)
