@@ -29,7 +29,6 @@ TABELA_RPM = {
     "Shorts/TikTok":5, "Marketing Digital":40, "Fitness":18,
     "Receitas":14, "Pets":16, "Viagens":28,
     "Sobrenatural":22, "Autoajuda":16, "Fofoca/Celebridades":10,
-    "Política":30,
 }
 
 # ═══════════════════════════════════════════════════════════════
@@ -42,7 +41,7 @@ def chamar_ia(prompt):
             json={
                 "model": "openai",
                 "messages": [
-                    {"role": "system", "content": "Você é um especialista em YouTube. Responda apenas com a lista numerada, sem introduções ou conclusões."},
+                    {"role": "system", "content": "Você é um roteirista especialista em títulos virais do YouTube. Sua única tarefa é criar títulos envolventes. NUNCA use formatos preguiçosos como 'URGENTE: [palavra]'. Crie frases completas."},
                     {"role": "user", "content": prompt}
                 ],
                 "temperature": 0.9,
@@ -105,94 +104,65 @@ def analisar_canal(url, max_vids=30):
                             key=lambda x:x["views"],reverse=True)[:5]}
 
 # ═══════════════════════════════════════════════════════════════
-# 🧠 GERADOR DE TÍTULOS IA (CORRIGIDO E INTELIGENTE)
+# 🧠 GERADOR DE TÍTULOS IA (ULTRA OTIMIZADO)
 # ═══════════════════════════════════════════════════════════════
 def gerar_titulos_ia(titulo_video, nicho):
     if not titulo_video or not titulo_video.strip():
         return "<div class='msg-erro'>Digite o título de um vídeo viral!</div>"
     
-    prompt = f"""Crie EXATAMENTE 10 títulos virais para YouTube sobre o tema: "{titulo_video}".
+    prompt = f"""Crie EXATAMENTE 10 títulos virais e profissionais para YouTube sobre o tema: "{titulo_video}".
 Nicho: {nicho}.
 
-REGRAS OBRIGATÓRIAS:
-1. Crie FRASES COMPLETAS e chamativas (40 a 70 caracteres).
-2. Use gatilhos: curiosidade, polêmica, segredo, urgência.
-3. NUNCA repita a palavra-chave solta. Contextualize ela na frase.
-4. Formato de resposta APENAS assim:
-1. Primeiro título incrível aqui
-2. Segundo título incrível aqui
+REGRAS ABSOLUTAS:
+1. Crie FRASES COMPLETAS e envolventes (40 a 80 caracteres).
+2. Use gatilhos: mistério, desafio, segredo revelado, transformação.
+3. NUNCA use formatos preguiçosos como "URGENTE: [tema]" ou "[Tema] é bom?".
+4. NUNCA repita a palavra-chave solta. Contextualize ela em uma história ou pergunta.
+5. Formato de resposta APENAS assim:
+1. Primeiro título incrível e completo aqui
+2. Segundo título incrível e completo aqui
 ...
-10. Décimo título incrível aqui"""
+10. Décimo título incrível e completo aqui"""
     
     resultado = chamar_ia(prompt)
     titulos = []
     
     if resultado:
-        # Regex melhorado para capturar títulos mesmo com markdown ou variações
         for linha in resultado.split('\n'):
             linha = linha.strip()
-            # Captura "1. Título" ou "1) Título" ou "1 - Título"
             match = re.search(r'^\d+[\.\)\-]\s*\**(.+?)\**', linha)
             if match:
                 titulo = match.group(1).strip()
-                # Validação: deve ter pelo menos 4 palavras e menos de 100 caracteres
-                if len(titulo.split()) >= 4 and len(titulo) <= 90:
+                # Validação rigorosa: pelo menos 5 palavras e menos de 90 caracteres
+                if len(titulo.split()) >= 5 and len(titulo) <= 90:
                     titulos.append(titulo)
     
-    # Se a IA falhar ou retornar pouco, usa o fallback INTELIGENTE (não o genérico)
+    # Fallback de alta qualidade se a IA falhar
     if len(titulos) < 7:
-        titulos = fallback_inteligente(titulo_video, nicho)
+        titulos = fallback_universal(titulo_video)
     
-    # Garante exatamente 10 títulos
-    titulos = list(dict.fromkeys(titulos)) # Remove duplicatas
+    # Garante exatamente 10 títulos únicos
+    titulos = list(dict.fromkeys(titulos))
     while len(titulos) < 10:
-        titulos.append(f"A Verdade Não Contada Sobre {titulo_video.title()}")
+        titulos.append(f"A História Não Contada Por Trás de {titulo_video.title()}")
     
-    return renderizar_titulos(titulo_video, titulos[:10], "TÍTULO ORIGINAL ANALISADO", "10 TÍTULOS GERADOS PELA IA", "Dica: Escolha o título que melhor se adapta ao seu público!")
+    return renderizar_titulos(titulo_video, titulos[:10], "TÍTULO ORIGINAL ANALISADO", "10 TÍTULOS GERADOS PELA IA", "Dica: Escolha o título que gera mais curiosidade!")
 
-def fallback_inteligente(keyword, nicho):
-    """Gera títulos reais e gramaticais quando a IA falha"""
+def fallback_universal(keyword):
+    """Fórmulas universais de alto CTR que funcionam para qualquer tema"""
     kw = keyword.title()
-    if "Política" in nicho or any(x in keyword.lower() for x in ["governo", "lula", "eleição", "politica", "brasil"]):
-        return [
-            f"O Que Realmente Acontece Nos Bastidores Do {kw}",
-            f"A Verdade Sobre {kw} Que A Mídia Não Mostra",
-            f"Por Que {kw} Está Dividindo O Brasil Em 2024",
-            f"7 Mentiras Que Te Contaram Sobre {kw}",
-            f"O Escândalo de {kw} Que Pode Mudar Tudo",
-            f"Como {kw} Afeta Diretamente O Seu Bolso",
-            f"A Manipulação Por Trás de {kw} Finalmente Explicada",
-            f"O Futuro de {kw} e o Que Isso Significa Para Você",
-            f"URGENTE: Novas Revelações Sobre {kw}",
-            f"Por Que {kw} Continua Sendo O Assunto Do Momento"
-        ]
-    elif "Games" in nicho or any(x in keyword.lower() for x in ["gta", "game", "jogo", "minecraft", "roblox"]):
-        return [
-            f"A Verdade Sobre {kw} Que Nenhum Youtuber Conta",
-            f"Por Que {kw} Continua Quebrando Recordes Em 2024",
-            f"7 Segredos Escondidos Em {kw} Que Você Não Sabia",
-            f"O Fim de {kw}? O Que Acontece Nos Próximos Meses",
-            f"Como {kw} Mudou A História Dos Games Para Sempre",
-            f"URGENTE: Nova Atualização de {kw} Muda Tudo",
-            f"O Erro Que Destruiu a Reputação de {kw}",
-            f"Por Que Todo Mundo Está Voltando a Jogar {kw}",
-            f"A História Não Contada Por Trás de {kw}",
-            f"Desafio Impossível em {kw}: O Resultado Vai Te Chocar"
-        ]
-    else:
-        # Fallback genérico mas gramaticalmente correto
-        return [
-            f"A Verdade Sobre {kw} Que Ninguém Te Conta",
-            f"Por Que {kw} Está Fazendo Tanto Sucesso Agora",
-            f"7 Segredos de {kw} Que Vão Mudar Sua Perspectiva",
-            f"O Que Realmente Acontece Quando Você Ignora {kw}",
-            f"A História Não Contada Por Trás de {kw}",
-            f"URGENTE: Novas Revelações Chocantes Sobre {kw}",
-            f"Como {kw} Pode Afetar Sua Vida Sem Você Perceber",
-            f"O Maior Erro Que As Pessoas Cometem Com {kw}",
-            f"Por Que {kw} É O Assunto Mais Polêmico Do Momento",
-            f"O Futuro de {kw}: O Que Esperar Nos Próximos Anos"
-        ]
+    return [
+        f"A Verdade Obscura Sobre {kw} Que Ninguém Te Conta",
+        f"Por Que {kw} Está Assustando Especialistas em 2024",
+        f"7 Segredos de {kw} Que Vão Mudar Sua Perspectiva",
+        f"O Que Realmente Acontece Quando Você Ignora {kw}",
+        f"Testei {kw} por 30 Dias e o Resultado Foi Chocante",
+        f"O Maior Erro Que as Pessoas Cometem Com {kw}",
+        f"A História Não Contada Por Trás de {kw}",
+        f"Por Que {kw} É o Assunto Mais Polêmico do Momento",
+        f"O Futuro de {kw}: O Que Esperar Nos Próximos Anos",
+        f"Como {kw} Pode Afetar Sua Vida Sem Você Perceber"
+    ]
 
 def renderizar_titulos(titulo_original, titulos, label_original, label_gerados, dica):
     html = f'''<div class="box-resultado box-titulos">
@@ -205,7 +175,7 @@ def renderizar_titulos(titulo_original, titulos, label_original, label_gerados, 
     return html
 
 # ═══════════════════════════════════════════════════════════════
-# 📝 GERADOR DE TÍTULOS SIMPLES (CORRIGIDO E CONTEXTUAL)
+# 📝 GERADOR DE TÍTULOS SIMPLES (FÓRMULAS UNIVERSAIS DE SUCESSO)
 # ═══════════════════════════════════════════════════════════════
 def gerar_titulos_simples(nicho, palavras_chave):
     if not palavras_chave or not palavras_chave.strip():
@@ -215,62 +185,24 @@ def gerar_titulos_simples(nicho, palavras_chave):
     if not palavras:
         return "<div class='msg-erro'>Digite palavras-chave válidas separadas por vírgula!</div>"
     
-    # Junta as palavras para criar contexto
-    contexto = " ".join(palavras).lower()
     p0 = palavras[0].title()
     p1 = palavras[1].title() if len(palavras) > 1 else "Concorrência"
     
-    # DETECÇÃO INTELIGENTE DE NICHO PELAS PALAVRAS-CHAVE
-    is_politica = "Política" in nicho or any(x in contexto for x in ["governo", "lula", "eleição", "politica", "brasil", "congresso"])
-    is_crime = "Histórias/Crimes" in nicho or any(x in contexto for x in ["crime", "assassinato", "mistério", "terror", "polícia"])
-    is_financeiro = "Finanças" in nicho or any(x in contexto for x in ["dinheiro", "rico", "investimento", "crypto", "ganhar"])
-    
-    if is_politica:
-        formulas = [
-            f"O Que Realmente Acontece Nos Bastidores Do {p0}",
-            f"A Verdade Sobre {p0} Que A Mídia Não Mostra",
-            f"Por Que {p0} Está Dividindo O Brasil Em 2024",
-            f"7 Mentiras Que Te Contaram Sobre {p0}",
-            f"O Escândalo de {p0} Que Pode Mudar Tudo",
-            f"Como {p0} Afeta Diretamente O Seu Bolso",
-            f"A Manipulação Por Trás de {p0} Finalmente Explicada"
-        ]
-    elif is_crime:
-        formulas = [
-            f"O Crime de {p0} Que Ninguém Consegue Resolver",
-            f"7 Detalhes Macabros de {p0} Que Passaram Despercebidos",
-            f"A Verdade Sombria Por Trás de {p0}",
-            f"O Mistério de {p0} Que Assusta Investigadores",
-            f"10 Evidências Chocantes de {p0}",
-            f"Como {p0} Enganou a Todos Por Anos",
-            f"URGENTE: Novas Revelações Sobre {p0}"
-        ]
-    elif is_financeiro:
-        formulas = [
-            f"7 Maneiras de Ganhar Dinheiro com {p0} em 2024",
-            f"Como {p0} Pode Te Fazer Rico em 5 Anos",
-            f"O Segredo de {p0} Que Milionários Não Contam",
-            f"Por Que {p0} Está Fazendo Pessoas Comuns Ficarem Ricas",
-            f"10 Erros Financeiros Que Você Comete com {p0}",
-            f"Como Começar com {p0} do Zero (Guia Completo)",
-            f"A Verdade Sobre {p0} Que Os Bancos Escondem"
-        ]
-    else:
-        # Genérico de alta qualidade
-        formulas = [
-            f"7 Segredos Sobre {p0} Que Vão Mudar Sua Vida",
-            f"10 Maneiras de Ganhar Dinheiro com {p0}",
-            f"Por Que {p0} Está Fazendo Pessoas Ficarem Ricas",
-            f"Você Sabia Que {p0} Pode Te Fazer Ganhar {p1}?",
-            f"URGENTE: O Que Está Acontecendo com {p0}",
-            f"ATENÇÃO: Não Ignore Isso Sobre {p0} em 2024",
-            f"{p0} vs {p1}: Qual é Melhor?"
-        ]
+    # Fórmulas universais que funcionam para CURIOSIDADES, CRIMES, TECH, FINANCEIRO, etc.
+    formulas = [
+        f"A Verdade Obscura Sobre {p0} Que Ninguém Te Conta",
+        f"7 Segredos de {p0} Que Vão Mudar Sua Perspectiva",
+        f"Por Que {p0} Está Assustando Especialistas em 2024",
+        f"O Que Realmente Acontece Quando Você Ignora {p0}",
+        f"Testei {p0} por 30 Dias e o Resultado Foi Chocante",
+        f"O Maior Erro Que as Pessoas Cometem Com {p0}",
+        f"Como {p0} Pode Afetar Sua Vida Sem Você Perceber"
+    ]
     
     return renderizar_titulos(palavras_chave, formulas[:7], "PALAVRAS-CHAVE ANALISADAS", "7 TÍTULOS CRIADOS", "Dica: Combine estes títulos com thumbnails de alto contraste!")
 
 # ═══════════════════════════════════════════════════════════════
-# 🎨 CSS - INTERFACE LIMPA E SIMPLES
+# 🎨 CSS - INTERFACE LIMPA E PROFISSIONAL
 # ═══════════════════════════════════════════════════════════════
 CSS_YOUTUBE = """
 <style>
@@ -456,7 +388,7 @@ with gr.Blocks(title="Begins - Creator Assistant", theme=begins_theme) as app:
         <h1><span class="begins">BEGINS</span> - Assistente do Criador</h1>
         <div class="creator">Murilo Silva - Criador de Conteúdo</div>
         <p class="subtitle">O ponto de partida para o seu novo negócio no YouTube</p>
-        <span class="badge">VERSÃO 16.0 - IA INTELIGENTE</span>
+        <span class="badge">VERSÃO 17.0 - TÍTULOS PROFISSIONAIS</span>
     </div>
     """)
     
@@ -467,9 +399,9 @@ with gr.Blocks(title="Begins - Creator Assistant", theme=begins_theme) as app:
             gr.Markdown("### Caçador de Canais")
             with gr.Row():
                 with gr.Column(scale=2):
-                    palavra = gr.Textbox(label="O que caçar?", placeholder="Ex: histórias de terror, carros abandonados, política...")
+                    palavra = gr.Textbox(label="O que caçar?", placeholder="Ex: mistérios do oceano, curiosidades sobre o espaço, histórias de sobrevivência...")
                 with gr.Column(scale=1):
-                    nicho = gr.Dropdown(list(TABELA_RPM.keys()), value="Histórias/Crimes", label="Nicho")
+                    nicho = gr.Dropdown(list(TABELA_RPM.keys()), value="Curiosidades", label="Nicho")
             with gr.Row():
                 qtd = gr.Slider(3,20,value=8,step=1,label="Quantos canais")
                 vids_caca = gr.Slider(10,50,value=30,step=5,label="Vídeos por canal")
@@ -496,7 +428,7 @@ with gr.Blocks(title="Begins - Creator Assistant", theme=begins_theme) as app:
         with gr.Tab("Gerador de Títulos IA"):
             gr.Markdown("### Gerador de Títulos IA")
             titulo_video_ia = gr.Textbox(label="Título do vídeo viral", placeholder="Ex: Sobrevivi 100 Dias Em Um Bunker Nuclear")
-            nicho_ia = gr.Dropdown(list(TABELA_RPM.keys()), value="Games", label="Nicho do Canal")
+            nicho_ia = gr.Dropdown(list(TABELA_RPM.keys()), value="Curiosidades", label="Nicho do Canal")
             btn_ia = gr.Button("GERAR 10 TÍTULOS COM IA", variant="primary", size="lg")
             out_ia = gr.HTML()
             btn_ia.click(fn=gerar_titulos_ia, inputs=[titulo_video_ia, nicho_ia], outputs=out_ia)
@@ -505,9 +437,9 @@ with gr.Blocks(title="Begins - Creator Assistant", theme=begins_theme) as app:
             gr.Markdown("### Gerador de Títulos Simples")
             with gr.Row():
                 with gr.Column(scale=1):
-                    nicho_gen = gr.Dropdown(list(TABELA_RPM.keys()), value="Política", label="Nicho do Canal")
+                    nicho_gen = gr.Dropdown(list(TABELA_RPM.keys()), value="Curiosidades", label="Nicho do Canal")
                 with gr.Column(scale=2):
-                    kw_gen = gr.Textbox(label="Palavras-chave (separe por vírgula)", placeholder="Ex: governo, lula, eleição")
+                    kw_gen = gr.Textbox(label="Palavras-chave (separe por vírgula)", placeholder="Ex: mistérios, oceano, criaturas, profundidade")
             btn_gen = gr.Button("GERAR 7 TÍTULOS", variant="primary", size="lg")
             out_gen = gr.HTML()
             btn_gen.click(fn=gerar_titulos_simples, inputs=[nicho_gen, kw_gen], outputs=out_gen)
@@ -517,16 +449,16 @@ with gr.Blocks(title="Begins - Creator Assistant", theme=begins_theme) as app:
             ### Guia
             
             **CAÇADOR DE CANAIS**
-            Digite o tema do seu nicho. Exemplos: 'histórias de terror', 'carros abandonados', 'política'. Escolha o nicho correspondente. Ajuste a quantidade de canais (recomendado: 8) e a faixa de inscritos (recomendado: 10.000 a 500.000). Marque 'Público estrangeiro' se quiser buscar canais em inglês/espanhol (pagam 3x mais). Clique em 'INICIAR CAÇADA' e espere 1-3 minutos.
+            Digite o tema do seu nicho. Exemplos: 'mistérios do oceano', 'curiosidades sobre o espaço', 'histórias de sobrevivência'. Escolha o nicho correspondente. Ajuste a quantidade de canais (recomendado: 8) e a faixa de inscritos (recomendado: 10.000 a 500.000). Marque 'Público estrangeiro' se quiser buscar canais em inglês/espanhol (pagam 3x mais). Clique em 'INICIAR CAÇADA' e espere 1-3 minutos.
             
             **ANALISAR CANAL**
             Cole o link completo do canal ou apenas o @NomeDoCanal. Escolha o nicho e clique em 'AUDITAR CANAL'. O sistema vai analisar os vídeos e te mostrar a média real de views e os títulos dos vídeos encontrados.
             
             **GERADOR DE TÍTULOS IA**
-            Cole o TÍTULO COMPLETO de um vídeo viral que você quer modelar. A IA vai analisar o padrão psicológico e gerar EXATAMENTE 10 títulos NOVOS e CRIATIVOS no mesmo estilo, adaptados especificamente para o nicho selecionado.
+            Cole o TÍTULO COMPLETO de um vídeo viral que você quer modelar. A IA vai analisar o padrão psicológico e gerar EXATAMENTE 10 títulos NOVOS, com frases completas e envolventes, adaptados especificamente para o nicho selecionado.
             
             **GERADOR DE TÍTULOS SIMPLES**
-            Digite palavras-chave separadas por vírgula. O sistema detecta automaticamente o contexto (ex: política, crimes, finanças) e usa fórmulas de títulos virais ultra-específicas para gerar EXATAMENTE 7 títulos prontos, gramaticalmente corretos e altamente direcionados.
+            Digite palavras-chave separadas por vírgula. O sistema usa fórmulas universais de alto CTR (Click-Through Rate) que funcionam para qualquer nicho, gerando EXATAMENTE 7 títulos prontos, gramaticalmente corretos e altamente direcionados.
             
             **DICAS DE OURO:**
             - Busque em inglês para achar canais que pagam 3x mais
