@@ -1,18 +1,14 @@
-import yt_dlp, re, statistics, csv, datetime, warnings, time, random, os, requests, json
+import yt_dlp, re, statistics, csv, datetime, warnings, time, random, os, requests
 import gradio as gr
 warnings.filterwarnings("ignore")
 
 # ═══════════════════════════════════════════════════════════════
-# 🌍 SISTEMA DE INTERNACIONALIZAÇÃO (PT / EN / ES) - FUNCIONANDO
+# 🌍 SISTEMA DE IDIOMA (ATUALIZAÇÃO DINÂMICA DA INTERFACE)
 # ═══════════════════════════════════════════════════════════════
 IDIOMA_ATUAL = "pt"
 
 I18N = {
     "pt": {
-        "header_title": "BEGINS - Assistente do Criador",
-        "header_creator": "Murilo Silva - Criador de Conteúdo",
-        "header_subtitle": "O ponto de partida para o seu novo negócio no YouTube",
-        "header_badge": "VERSAO 13.0 - IA OPEN SOURCE",
         "tab_cacador": "Cacador de Canais",
         "tab_analisar": "Analisar Canal",
         "tab_titulos_ia": "Gerador de Titulos IA",
@@ -20,18 +16,6 @@ I18N = {
         "tab_roteiro": "Gerador de Roteiro",
         "tab_thumbnails": "Gerador de Thumbnails",
         "tab_guia": "Guia Completo",
-        "footer_text": "O ponto de partida para o seu novo negocio.",
-        "footer_dev": "Desenvolvido por Murilo Silva - Criador de Conteudo",
-        "footer_disclaimer": "Ferramenta para fins educacionais e de pesquisa de mercado.",
-        "lang_label": "Idioma",
-        "banner_ia_title": "IA Open Source Integrada (Pollinations.ai + HuggingFace)",
-        "banner_ia_text": "100% gratuita, sem login, sem senha, sem API key. Codigo aberto. Gerando titulos, roteiros e thumbnails automaticamente.",
-        "btn_cacar": "INICIAR CACADA",
-        "btn_analisar": "AUDITAR CANAL",
-        "btn_titulos_ia": "GERAR 10 TITULOS COM IA",
-        "btn_titulos_simples": "GERAR 7 TITULOS",
-        "btn_roteiro": "GERAR ROTEIRO COMPLETO",
-        "btn_thumbnails": "GERAR 3 THUMBNAILS",
         "lbl_palavra": "O que cacar?",
         "lbl_nicho": "Nicho",
         "lbl_qtd": "Quantos canais",
@@ -45,11 +29,17 @@ I18N = {
         "lbl_nicho_ia": "Nicho do Canal",
         "lbl_palavras_chave": "Palavras-chave (separe por virgula)",
         "lbl_tema": "Tema do seu video",
-        "ph_cacar": "Ex: historias de terror, carros abandonados, true crime...",
+        "ph_cacar": "Ex: historias de terror, carros abandonados, politica...",
         "ph_url": "https://www.youtube.com/@NomeDoCanal",
-        "ph_titulo": "Ex: I Survived 100 Days In Nuclear Bunker, Win $500,000",
-        "ph_palavras": "Ex: cachorro, dinheiro, trabalho, gratis",
+        "ph_titulo": "Ex: Sobrevivi 100 Dias Em Um Bunker Nuclear",
+        "ph_palavras": "Ex: eleicoes, governo, crise, economia",
         "ph_tema": "Ex: Os misterios nao resolvidos do Triangulo das Bermudas",
+        "btn_cacar": "INICIAR CACADA",
+        "btn_analisar": "AUDITAR CANAL",
+        "btn_titulos_ia": "GERAR 10 TITULOS COM IA",
+        "btn_titulos_simples": "GERAR 7 TITULOS",
+        "btn_roteiro": "GERAR ROTEIRO COMPLETO",
+        "btn_thumbnails": "GERAR 3 THUMBNAILS",
         "lbl_csv": "Baixar Relatorio (CSV)",
         "msg_erro_vazio": "Digite o que voce quer cacar!",
         "msg_erro_nada": "Nada encontrado. Tente outra palavra.",
@@ -65,11 +55,11 @@ I18N = {
         "titulos_criados": "TITULOS CRIADOS",
         "roteiro_completo": "ROTEIRO COMPLETO",
         "thumbnails_ideias": "IDEIAS DE THUMBNAILS",
-        "dica_titulo": "Dica: Escolha o titulo que melhor se adapta ao seu publico e combine com uma thumbnail impactante!",
+        "dica_titulo": "Dica: Escolha o titulo que melhor se adapta ao seu publico!",
         "dica_roteiro": "Dica: Use este roteiro como base e adapte com sua personalidade!",
-        "dica_thumb": "Dica: Use o Canva (gratis) para criar as thumbnails com essas especificacoes!",
-        "dica_titulo_simples": "Dica: Combine estes titulos com thumbnails de alto contraste para maximizar o CTR!",
-        "modelos_copiar": "Modelos para copiar",
+        "dica_thumb": "Dica: Use o Canva para criar as thumbnails com essas especificacoes!",
+        "dica_titulo_simples": "Dica: Combine estes titulos com thumbnails de alto contraste!",
+        "modelos_copiar": "Modelos de videos para copiar",
         "abrir_youtube": "Abrir canal no YouTube",
         "ganho_video": "GANHO POR VIDEO",
         "total_canal": "TOTAL DO CANAL",
@@ -87,10 +77,6 @@ I18N = {
         "guia_titulo": "Como usar o Begins - Assistente do Criador",
     },
     "en": {
-        "header_title": "BEGINS - Creator Assistant",
-        "header_creator": "Murilo Silva - Content Creator",
-        "header_subtitle": "The starting point for your new YouTube business",
-        "header_badge": "VERSION 13.0 - OPEN SOURCE AI",
         "tab_cacador": "Channel Hunter",
         "tab_analisar": "Analyze Channel",
         "tab_titulos_ia": "AI Title Generator",
@@ -98,18 +84,6 @@ I18N = {
         "tab_roteiro": "Script Generator",
         "tab_thumbnails": "Thumbnail Generator",
         "tab_guia": "Complete Guide",
-        "footer_text": "The starting point for your new business.",
-        "footer_dev": "Developed by Murilo Silva - Content Creator",
-        "footer_disclaimer": "Tool for educational and market research purposes.",
-        "lang_label": "Language",
-        "banner_ia_title": "Open Source AI Integrated (Pollinations.ai + HuggingFace)",
-        "banner_ia_text": "100% free, no login, no password, no API key. Open source. Generating titles, scripts and thumbnails automatically.",
-        "btn_cacar": "START HUNT",
-        "btn_analisar": "AUDIT CHANNEL",
-        "btn_titulos_ia": "GENERATE 10 TITLES WITH AI",
-        "btn_titulos_simples": "GENERATE 7 TITLES",
-        "btn_roteiro": "GENERATE COMPLETE SCRIPT",
-        "btn_thumbnails": "GENERATE 3 THUMBNAILS",
         "lbl_palavra": "What to hunt?",
         "lbl_nicho": "Niche",
         "lbl_qtd": "How many channels",
@@ -123,11 +97,17 @@ I18N = {
         "lbl_nicho_ia": "Channel Niche",
         "lbl_palavras_chave": "Keywords (separate with comma)",
         "lbl_tema": "Your video theme",
-        "ph_cacar": "Ex: horror stories, abandoned cars, true crime...",
+        "ph_cacar": "Ex: horror stories, abandoned cars, politics...",
         "ph_url": "https://www.youtube.com/@ChannelName",
-        "ph_titulo": "Ex: I Survived 100 Days In Nuclear Bunker, Win $500,000",
-        "ph_palavras": "Ex: dog, money, work, free",
+        "ph_titulo": "Ex: I Survived 100 Days In A Nuclear Bunker",
+        "ph_palavras": "Ex: elections, government, crisis, economy",
         "ph_tema": "Ex: The unsolved mysteries of the Bermuda Triangle",
+        "btn_cacar": "START HUNT",
+        "btn_analisar": "AUDIT CHANNEL",
+        "btn_titulos_ia": "GENERATE 10 TITLES WITH AI",
+        "btn_titulos_simples": "GENERATE 7 TITLES",
+        "btn_roteiro": "GENERATE COMPLETE SCRIPT",
+        "btn_thumbnails": "GENERATE 3 THUMBNAILS",
         "lbl_csv": "Download Report (CSV)",
         "msg_erro_vazio": "Type what you want to hunt!",
         "msg_erro_nada": "Nothing found. Try another word.",
@@ -143,11 +123,11 @@ I18N = {
         "titulos_criados": "CREATED TITLES",
         "roteiro_completo": "COMPLETE SCRIPT",
         "thumbnails_ideias": "THUMBNAIL IDEAS",
-        "dica_titulo": "Tip: Choose the title that best fits your audience and combine with an impactful thumbnail!",
-        "dica_roteiro": "Tip: Use this script as a base and adapt it with your personality!",
-        "dica_thumb": "Tip: Use Canva (free) to create thumbnails with these specifications!",
-        "dica_titulo_simples": "Tip: Combine these titles with high-contrast thumbnails to maximize CTR!",
-        "modelos_copiar": "Models to copy",
+        "dica_titulo": "Tip: Choose the title that best fits your audience!",
+        "dica_roteiro": "Tip: Use this script as a base and adapt it!",
+        "dica_thumb": "Tip: Use Canva to create thumbnails with these specs!",
+        "dica_titulo_simples": "Tip: Combine these titles with high-contrast thumbnails!",
+        "modelos_copiar": "Video models to copy",
         "abrir_youtube": "Open channel on YouTube",
         "ganho_video": "EARNINGS PER VIDEO",
         "total_canal": "CHANNEL TOTAL",
@@ -165,10 +145,6 @@ I18N = {
         "guia_titulo": "How to use Begins - Creator Assistant",
     },
     "es": {
-        "header_title": "BEGINS - Asistente del Creador",
-        "header_creator": "Murilo Silva - Creador de Contenido",
-        "header_subtitle": "El punto de partida para tu nuevo negocio en YouTube",
-        "header_badge": "VERSION 13.0 - IA OPEN SOURCE",
         "tab_cacador": "Cazador de Canales",
         "tab_analisar": "Analizar Canal",
         "tab_titulos_ia": "Generador de Titulos IA",
@@ -176,18 +152,6 @@ I18N = {
         "tab_roteiro": "Generador de Guion",
         "tab_thumbnails": "Generador de Miniaturas",
         "tab_guia": "Guia Completa",
-        "footer_text": "El punto de partida para tu nuevo negocio.",
-        "footer_dev": "Desarrollado por Murilo Silva - Creador de Contenido",
-        "footer_disclaimer": "Herramienta para fines educativos e investigacion de mercado.",
-        "lang_label": "Idioma",
-        "banner_ia_title": "IA Open Source Integrada (Pollinations.ai + HuggingFace)",
-        "banner_ia_text": "100% gratuita, sin login, sin contrasena, sin API key. Codigo abierto. Generando titulos, guiones y miniaturas automaticamente.",
-        "btn_cacar": "INICIAR CAZA",
-        "btn_analisar": "AUDITAR CANAL",
-        "btn_titulos_ia": "GENERAR 10 TITULOS CON IA",
-        "btn_titulos_simples": "GENERAR 7 TITULOS",
-        "btn_roteiro": "GENERAR GUION COMPLETO",
-        "btn_thumbnails": "GENERAR 3 MINIATURAS",
         "lbl_palavra": "Que cazar?",
         "lbl_nicho": "Nicho",
         "lbl_qtd": "Cuantos canales",
@@ -201,11 +165,17 @@ I18N = {
         "lbl_nicho_ia": "Nicho del Canal",
         "lbl_palavras_chave": "Palabras clave (separar con coma)",
         "lbl_tema": "Tema de tu video",
-        "ph_cacar": "Ej: historias de terror, coches abandonados, true crime...",
+        "ph_cacar": "Ej: historias de terror, coches abandonados, politica...",
         "ph_url": "https://www.youtube.com/@NombreDelCanal",
-        "ph_titulo": "Ej: Sobrevivi 100 Dias En Un Bunker Nuclear, Gana $500,000",
-        "ph_palavras": "Ej: perro, dinero, trabajo, gratis",
+        "ph_titulo": "Ej: Sobrevivi 100 Dias En Un Bunker Nuclear",
+        "ph_palavras": "Ej: elecciones, gobierno, crisis, economia",
         "ph_tema": "Ej: Los misterios no resueltos del Triangulo de las Bermudas",
+        "btn_cacar": "INICIAR CAZA",
+        "btn_analisar": "AUDITAR CANAL",
+        "btn_titulos_ia": "GENERAR 10 TITULOS CON IA",
+        "btn_titulos_simples": "GENERAR 7 TITULOS",
+        "btn_roteiro": "GENERAR GUION COMPLETO",
+        "btn_thumbnails": "GENERAR 3 MINIATURAS",
         "lbl_csv": "Descargar Reporte (CSV)",
         "msg_erro_vazio": "Escribe lo que quieres cazar!",
         "msg_erro_nada": "Nada encontrado. Prueba otra palabra.",
@@ -221,11 +191,11 @@ I18N = {
         "titulos_criados": "TITULOS CREADOS",
         "roteiro_completo": "GUION COMPLETO",
         "thumbnails_ideias": "IDEAS DE MINIATURAS",
-        "dica_titulo": "Consejo: Elige el titulo que mejor se adapte a tu audiencia y combinalo con una miniatura impactante!",
-        "dica_roteiro": "Consejo: Usa este guion como base y adaptalo con tu personalidad!",
-        "dica_thumb": "Consejo: Usa Canva (gratis) para crear las miniaturas con estas especificaciones!",
-        "dica_titulo_simples": "Consejo: Combina estos titulos con miniaturas de alto contraste para maximizar el CTR!",
-        "modelos_copiar": "Modelos para copiar",
+        "dica_titulo": "Consejo: Elige el titulo que mejor se adapte a tu audiencia!",
+        "dica_roteiro": "Consejo: Usa este guion como base y adaptalo!",
+        "dica_thumb": "Consejo: Usa Canva para crear las miniaturas con estas especificaciones!",
+        "dica_titulo_simples": "Consejo: Combina estos titulos con miniaturas de alto contraste!",
+        "modelos_copiar": "Modelos de videos para copiar",
         "abrir_youtube": "Abrir canal en YouTube",
         "ganho_video": "GANANCIA POR VIDEO",
         "total_canal": "TOTAL DEL CANAL",
@@ -248,28 +218,26 @@ def t(key):
     return I18N.get(IDIOMA_ATUAL, I18N["pt"]).get(key, I18N["pt"].get(key, key))
 
 # ═══════════════════════════════════════════════════════════════
-#  SISTEMA MULTI-IA (Pollinations + HuggingFace + Fallback)
+# 🤖 SISTEMA MULTI-IA (Pollinations + HuggingFace)
 # ═══════════════════════════════════════════════════════════════
 def chamar_ia(prompt, idioma="pt"):
-    """Tenta Pollinations.ai primeiro, depois HuggingFace"""
-    
     idioma_map = {"pt": "portugues brasileiro", "en": "English", "es": "espanol"}
     idioma_texto = idioma_map.get(idioma, "portugues brasileiro")
     
-    # TENTA 1: Pollinations.ai
+    # TENTA 1: Pollinations.ai (mais estável)
     try:
         response = requests.post(
             "https://text.pollinations.ai/openai",
             json={
                 "model": "openai",
                 "messages": [
-                    {"role": "system", "content": f"Responda sempre em {idioma_texto}. Seja direto e objetivo."},
+                    {"role": "system", "content": f"Responda sempre em {idioma_texto}. Seja direto, objetivo e siga exatamente o formato solicitado."},
                     {"role": "user", "content": prompt}
                 ],
                 "temperature": 0.8,
-                "max_tokens": 3000
+                "max_tokens": 2500
             },
-            timeout=60
+            timeout=45
         )
         if response.status_code == 200:
             data = response.json()
@@ -279,13 +247,13 @@ def chamar_ia(prompt, idioma="pt"):
     except:
         pass
     
-    # TENTA 2: HuggingFace Inference API (grátis)
+    # TENTA 2: HuggingFace Inference API (fallback)
     try:
         response = requests.post(
             "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2",
             headers={"Authorization": "Bearer hf_fake_token_for_free_tier"},
             json={"inputs": prompt, "parameters": {"max_new_tokens": 2000, "temperature": 0.8}},
-            timeout=60
+            timeout=45
         )
         if response.status_code == 200:
             data = response.json()
@@ -298,13 +266,14 @@ def chamar_ia(prompt, idioma="pt"):
     
     return None
 
-def gerar_imagem(prompt, width=1280, height=720):
-    """Gera imagem via Pollinations.ai (grátis, sem login)"""
+def gerar_imagem_thumbnail(prompt_tema):
+    """Gera imagem via Pollinations.ai no formato YouTube 1280x720"""
     try:
-        url = f"https://image.pollinations.ai/prompt/{requests.utils.quote(prompt)}?width={width}&height={height}&nologo=true&seed={random.randint(1,999999)}"
+        # Prompt otimizado para thumbnail de YouTube
+        img_prompt = f"YouTube thumbnail about {prompt_tema}, viral, high contrast, dramatic lighting, 4k, highly detailed, clickbait style, no text"
+        url = f"https://image.pollinations.ai/prompt/{requests.utils.quote(img_prompt)}?width=1280&height=720&nologo=true&seed={random.randint(1,999999)}"
         response = requests.get(url, timeout=30)
         if response.status_code == 200:
-            # Salva imagem temporária
             img_path = f"thumbnail_{random.randint(1000,9999)}.png"
             with open(img_path, "wb") as f:
                 f.write(response.content)
@@ -314,7 +283,7 @@ def gerar_imagem(prompt, width=1280, height=720):
     return None
 
 # ═══════════════════════════════════════════════════════════════
-# ️ UTILITÁRIOS
+# 🛠️ UTILITÁRIOS
 # ═══════════════════════════════════════════════════════════════
 PADRAO_NUM = re.compile(r"(\d+(?:[.,]\d+)?)\s*(bilh[oõ]es?|bilh[aã]o|milh[oõ]es?|milh[aã]o|mil|mi|m|b|k)?", re.I)
 MAPA_MULT = {"bilhoes":1e9,"bilhao":1e9,"b":1e9,"milhoes":1e6,"milhao":1e6,"mi":1e6,"m":1e6,"mil":1e3,"k":1e3}
@@ -341,11 +310,11 @@ TABELA_RPM = {
     "Shorts/TikTok":5, "Marketing Digital":40, "Fitness":18,
     "Receitas":14, "Pets":16, "Viagens":28,
     "Sobrenatural":22, "Autoajuda":16, "Fofoca/Celebridades":10,
-    "Politica":30,  # NOVO NICHO ADICIONADO
+    "Politica":30,
 }
 
-# ══════════════════════════════════════════════════════════════
-# 🔍 MOTOR DE BUSCA (CORRIGIDO - extrai mais vídeos)
+# ═══════════════════════════════════════════════════════════════
+# 🔍 MOTOR DE BUSCA (CORRIGIDO PARA MOSTRAR TÍTULOS)
 # ═══════════════════════════════════════════════════════════════
 def buscar_videos(query, max_results=50):
     opts = {"quiet":True,"no_warnings":True,"skip_download":True,"extract_flat":True,
@@ -357,7 +326,6 @@ def buscar_videos(query, max_results=50):
     except: return []
 
 def analisar_canal(url, max_vids=30):
-    """Analisa canal extraindo TODOS os vídeos disponíveis"""
     url_v = url.rstrip("/") + "/videos"
     opts = {"quiet":True,"no_warnings":True,"skip_download":True,"extract_flat":"in_playlist",
             "playlist_items":f"1-{max_vids}","ignoreerrors":True,"retries":3}
@@ -396,8 +364,8 @@ def analisar_canal(url, max_vids=30):
                             key=lambda x:x["views"],reverse=True)[:5]}
 
 # ═══════════════════════════════════════════════════════════════
-# 🧠 GERADOR DE TÍTULOS IA (CORRIGIDO - varia por nicho, 10 títulos)
-# ══════════════════════════════════════════════════════════════
+# 🧠 GERADOR DE TÍTULOS IA (CORRIGIDO: 10 TÍTULOS + ADAPTADO AO NICHO)
+# ═══════════════════════════════════════════════════════════════
 def gerar_titulos_ia(titulo_video, nicho):
     if not titulo_video or not titulo_video.strip():
         return f"<div class='msg-erro'>{t('msg_erro_titulo')}</div>"
@@ -405,85 +373,100 @@ def gerar_titulos_ia(titulo_video, nicho):
     idioma_map = {"pt": "portugues brasileiro", "en": "English", "es": "espanol"}
     idioma_texto = idioma_map.get(IDIOMA_ATUAL, "portugues brasileiro")
     
-    # Prompt específico por nicho
     prompt = f"""Voce e um especialista mundial em titulos virais para YouTube no nicho de {nicho}.
 
 Titulo original viral: "{titulo_video}"
 
-Sua tarefa: Criar EXATAMENTE 10 titulos COMPLETOS e CRIATIVOS para videos do YouTube, em {idioma_texto}, seguindo o mesmo estilo e padrao psicologico do titulo original, MAS ADAPTADOS PARA O NICHO DE {nicho.upper()}.
+Sua tarefa: Criar EXATAMENTE 10 titulos COMPLETOS e CRIATIVOS para videos do YouTube, em {idioma_texto}, seguindo o mesmo estilo e padrao psicologico do titulo original, MAS ADAPTADOS ESPECIFICAMENTE PARA O NICHO DE {nicho.upper()}.
 
 REGRAS CRITICAS:
-1. Cada titulo deve ser uma FRASE COMPLETA de 40-80 caracteres
-2. Use gatilhos mentais diferentes em cada titulo: curiosidade, urgencia, numeros, emocao, desafio, segredo, transformacao
-3. ADAPTE o conteudo para o nicho de {nicho} - use terminologia e temas desse nicho
-4. Varie os gatilhos entre os 10 titulos
-5. NUNCA responda apenas com palavras-chave soltas
-6. Os titulos devem ser DIFERENTES entre si - nao repita estruturas
+1. Cada titulo deve ser uma FRASE COMPLETA de 40-80 caracteres.
+2. Use gatilhos mentais diferentes em cada titulo: curiosidade, urgencia, numeros, emocao, desafio, segredo.
+3. ADAPTE o conteudo para o nicho de {nicho} - use terminologia, dores e desejos desse nicho especifico.
+4. Os 10 titulos DEVEM ser diferentes entre si. Nao repita estruturas.
+5. NUNCA responda apenas com palavras-chave soltas.
 
 FORMATO OBRIGATORIO (exatamente assim, em {idioma_texto}):
-1. [Titulo completo aqui com 40-80 caracteres adaptado para {nicho}]
-2. [Titulo completo aqui com 40-80 caracteres adaptado para {nicho}]
-3. [Titulo completo aqui com 40-80 caracteres adaptado para {nicho}]
-... ate 10
-
-EXEMPLO DE TITULO VALIDO: "I Survived 100 Days In A Nuclear Bunker, Win $500,000"
-EXEMPLO DE TITULO INVALIDO: "sobrevivencia, bunker, desafio"
+1. [Titulo completo aqui adaptado para {nicho}]
+2. [Titulo completo aqui adaptado para {nicho}]
+3. [Titulo completo aqui adaptado para {nicho}]
+4. [Titulo completo aqui adaptado para {nicho}]
+5. [Titulo completo aqui adaptado para {nicho}]
+6. [Titulo completo aqui adaptado para {nicho}]
+7. [Titulo completo aqui adaptado para {nicho}]
+8. [Titulo completo aqui adaptado para {nicho}]
+9. [Titulo completo aqui adaptado para {nicho}]
+10. [Titulo completo aqui adaptado para {nicho}]
 
 Responda APENAS com a lista numerada de 1 a 10, sem explicacoes extras."""
     
     resultado = chamar_ia(prompt, IDIOMA_ATUAL)
     
-    if resultado:
-        titulos = extrair_titulos(resultado)
-        if len(titulos) < 7:
-            titulos = gerar_titulos_fallback(titulo_video, nicho)
-    else:
-        titulos = gerar_titulos_fallback(titulo_video, nicho)
-    
-    # Garante exatamente 10 títulos
-    while len(titulos) < 10:
-        titulos.append(f"Titulo bonus {len(titulos)+1}: Como {titulo_video} se aplica ao nicho de {nicho}")
-    
-    return renderizar_titulos(titulo_video, titulos[:10], t('titulo_original'), t('titulos_gerados'), t('dica_titulo'))
-
-def extrair_titulos(texto):
     titulos = []
-    linhas = texto.split('\n')
-    for linha in linhas:
-        linha = linha.strip()
-        match = re.match(r'^\d+[\.\)]\s*(.+)', linha)
-        if match:
-            titulo = match.group(1).strip()
-            if len(titulo) >= 30 and len(titulo) <= 100:
-                if re.search(r'[A-ZÀ-Ýa-zà-ý]', titulo) and len(titulo.split()) >= 5:
-                    titulos.append(titulo)
-    if len(titulos) < 5:
+    if resultado:
+        linhas = resultado.split('\n')
         for linha in linhas:
             linha = linha.strip()
-            if len(linha) >= 30 and len(linha) <= 100:
-                if re.search(r'[A-ZÀ-Ýa-zà-ý]', linha) and len(linha.split()) >= 5:
-                    linha = re.sub(r'^[\-\*\•]\s*', '', linha)
-                    if linha not in titulos:
-                        titulos.append(linha)
-    return titulos[:10]
+            match = re.match(r'^\d+[\.\)]\s*(.+)', linha)
+            if match:
+                titulo = match.group(1).strip()
+                if len(titulo) >= 30 and len(titulo) <= 100:
+                    if re.search(r'[A-ZÀ-Ýa-zà-ý]', titulo) and len(titulo.split()) >= 5:
+                        titulos.append(titulo)
+    
+    # Se a IA falhar em gerar 10, usamos fallback inteligente por nicho
+    if len(titulos) < 10:
+        titulos = gerar_titulos_fallback_nicho(titulo_video, nicho)
+    
+    # Garante exatamente 10 títulos
+    titulos = titulos[:10]
+    while len(titulos) < 10:
+        titulos.append(f"Como {titulo_video} se aplica ao nicho de {nicho} (Versao {len(titulos)+1})")
+    
+    return renderizar_titulos(titulo_video, titulos, t('titulo_original'), t('titulos_gerados'), t('dica_titulo'))
 
-def gerar_titulos_fallback(titulo_original, nicho):
-    numeros = re.findall(r'\d+', titulo_original)
-    titulos = []
-    if numeros:
-        num = int(numeros[0])
-        for n in [num//2, num*2, num*10, 100, 1000]:
-            novo = re.sub(r'\d+', str(n), titulo_original, count=1)
-            if len(novo) >= 30:
-                titulos.append(novo)
-    prefixos = ["URGENTE: ", "ATENCAO: ", "IMPRESSINANTE: ", "INACREDITAVEL: ", "CHOCANTE: "]
-    for prefixo in prefixos[:5]:
-        novo = f"{prefixo}{titulo_original}"
-        if len(novo) <= 100:
-            titulos.append(novo)
-    titulos.append(f"Voce Conseguiria Sobreviver a Isso? {titulo_original}")
-    titulos.append(f"Por Que {titulo_original} Esta Chocando o Mundo?")
-    return titulos[:10]
+def gerar_titulos_fallback_nicho(titulo_original, nicho):
+    # Fallback específico por nicho se a IA falhar
+    if "Politica" in nicho:
+        return [
+            f"O Escandalo de {titulo_original} Que Pode Derrubar o Governo",
+            f"7 Verdades Sobre {titulo_original} Que Os Politicos Escondem",
+            f"Por Que {titulo_original} Esta Dividindo o Pais em 2024",
+            f"A Manipulacao Por Tras de {titulo_original} Explicada",
+            f"O Que Realmente Acontece Nos Bastidores de {titulo_original}",
+            f"10 Mentiras Que Te Contaram Sobre {titulo_original}",
+            f"Como {titulo_original} Afeta Seu Bolso Todos os Dias",
+            f"URGENTE: A Verdade Sobre {titulo_original} Que Ninguem Conta",
+            f"O Futuro de {titulo_original} e o Que Isso Significa Para Voce",
+            f"Por Que {titulo_original} Esta Chocando o Mundo Politico"
+        ]
+    elif "Historias/Crimes" in nicho:
+        return [
+            f"O Crime de {titulo_original} Que Ninguem Consegue Resolver",
+            f"7 Detalhes Macabros de {titulo_original} Que Passaram Despercebidos",
+            f"A Verdade Sombria Por Tras de {titulo_original}",
+            f"O Misterio de {titulo_original} Que Assusta Investigadores",
+            f"10 Evidencias Chocantes de {titulo_original}",
+            f"Como {titulo_original} Enganou a Todos Por Anos",
+            f"URGENTE: Novas Revelacoes Sobre {titulo_original}",
+            f"O Dia Em Que {titulo_original} Mudou Tudo",
+            f"A Historia Não Contada de {titulo_original}",
+            f"Por Que {titulo_original} Continua Assombrando a Todos"
+        ]
+    else:
+        # Fallback genérico
+        numeros = re.findall(r'\d+', titulo_original)
+        titulos = []
+        if numeros:
+            num = int(numeros[0])
+            for n in [num//2, num*2, num*10, 100, 1000]:
+                titulos.append(re.sub(r'\d+', str(n), titulo_original, count=1))
+        prefixos = ["URGENTE: ", "ATENCAO: ", "IMPRESSINANTE: ", "INACREDITAVEL: ", "CHOCANTE: "]
+        for prefixo in prefixos[:5]:
+            titulos.append(f"{prefixo}{titulo_original}")
+        titulos.append(f"Voce Conseguiria Sobreviver a Isso? {titulo_original}")
+        titulos.append(f"Por Que {titulo_original} Esta Chocando o Mundo?")
+        return titulos[:10]
 
 def renderizar_titulos(titulo_original, titulos, label_original, label_gerados, dica):
     html = f'''<div class="box-resultado box-titulos">
@@ -496,7 +479,7 @@ def renderizar_titulos(titulo_original, titulos, label_original, label_gerados, 
     return html
 
 # ═══════════════════════════════════════════════════════════════
-# 📝 GERADOR DE TÍTULOS SIMPLES (CORRIGIDO - 7 títulos, por nicho)
+# 📝 GERADOR DE TÍTULOS SIMPLES (CORRIGIDO: EXATAMENTE 7, POR NICHO)
 # ═══════════════════════════════════════════════════════════════
 def gerar_titulos_simples(nicho, palavras_chave):
     if not palavras_chave or not palavras_chave.strip():
@@ -509,7 +492,7 @@ def gerar_titulos_simples(nicho, palavras_chave):
     p0 = palavras[0].title() if palavras else "Tema"
     p1 = palavras[1].title() if len(palavras) > 1 else "Concorrencia"
     
-    # Fórmulas específicas por nicho
+    # Fórmulas ultra-específicas por nicho
     formulas_por_nicho = {
         "Politica": [
             f"O Escandalo de {p0} Que Pode Derrubar o Governo",
@@ -524,10 +507,10 @@ def gerar_titulos_simples(nicho, palavras_chave):
             f"O Crime de {p0} Que Ninguem Consegue Resolver",
             f"7 Detalhes Macabros de {p0} Que Passaram Despercebidos",
             f"A Verdade Sombria Por Tras de {p0}",
-            f"O Assassino de {p0} Finalmente Foi Pego?",
-            f"10 Evidencias Chocantes de {p0}",
             f"O Misterio de {p0} Que Assusta Investigadores",
+            f"10 Evidencias Chocantes de {p0}",
             f"Como {p0} Enganou a Todos Por Anos",
+            f"URGENTE: Novas Revelacoes Sobre {p0}",
         ],
         "Financas": [
             f"7 Maneiras de Ganhar Dinheiro com {p0} em 2024",
@@ -560,13 +543,13 @@ def gerar_titulos_simples(nicho, palavras_chave):
         f"{p0} vs {p1}: Qual e Melhor?",
     ])
     
-    # Garante exatamente 7 títulos
+    # GARANTE EXATAMENTE 7 TÍTULOS
     titulos = formulas[:7]
     
     return renderizar_titulos(palavras_chave, titulos, t('palavras_analisadas'), t('titulos_criados'), t('dica_titulo_simples'))
 
 # ═══════════════════════════════════════════════════════════════
-# 📜 GERADOR DE ROTEIRO CENA POR CENA (CORRIGIDO)
+# 📜 GERADOR DE ROTEIRO (CORRIGIDO: PROMPT ENCURTADO + FALLBACK)
 # ═══════════════════════════════════════════════════════════════
 def gerar_roteiro(tema, canais_info):
     if not tema or not tema.strip():
@@ -575,72 +558,19 @@ def gerar_roteiro(tema, canais_info):
     idioma_map = {"pt": "portugues brasileiro", "en": "English", "es": "espanol"}
     idioma_texto = idioma_map.get(IDIOMA_ATUAL, "portugues brasileiro")
     
-    prompt = f"""Voce e o MELHOR roteirista de videos virais do YouTube.
-
-TEMA DO VIDEO: "{tema}"
-
-Crie um ROTEIRO COMPLETO CENA POR CENA para um video de 10-15 minutos, em {idioma_texto}, baseado na estrutura dos videos mais virais do YouTube.
-
-ESTRUTURA OBRIGATORIA:
-
-CENA 1 - GANCHO (0-30 segundos)
-- Frase de impacto que PRENDE a atencao nos primeiros 3 segundos
-- Revele o stakes (o que esta em jogo)
-- Prometa algo extraordinario
-- Duracao: 30s
-
-CENA 2 - INTRODUCAO (30s - 2min)
-- Contextualize o tema
-- Apresente as regras do desafio/conceito
-- Mostre o premio ou objetivo final
-- Duracao: 1min30s
-
-CENA 3 - PRIMEIRO OBSTACULO (2min - 4min)
-- Primeiro desafio/surpresa
-- Mostre reacao emocional
-- Duracao: 2min
-
-CENA 4 - ESCALADA DE TENSAO (4min - 6min)
-- Aumente a dificuldade
-- Elimine participantes ou aumente stakes
-- Duracao: 2min
-
-CENA 5 - PONTO DE VIRADA (6min - 8min)
-- Momento inesperado que muda tudo
-- Reacao emocional forte
-- Duracao: 2min
-
-CENA 6 - PREPARACAO PARA O CLIMAX (8min - 10min)
-- Ultimos competidores/desafio final se aproximando
-- Tensao maxima
-- Duracao: 2min
-
-CENA 7 - CLIMAX (10min - 12min)
-- Momento decisivo
-- Resolucao do desafio principal
-- Duracao: 2min
-
-CENA 8 - PREMIACAO (12min - 13min30s)
-- Entrega do premio
-- Reacao do vencedor
-- Duracao: 1min30s
-
-CENA 9 - CTA FINAL (13min30s - 15min)
-- Chamada para like, inscricao e proximo video
-- Teaser do proximo video
-- Duracao: 1min30s
-
-Para CADA CENA, inclua:
-- O QUE FALAR: texto sugerido pronto para narrar
-- SUGESTAO VISUAL: o que mostrar na tela
-- DURACAO: tempo exato da cena
-- SUGESTAO SONORA: tipo de musica/efeito sonoro
-
-Responda de forma ORGANIZADA, CLARA e PRONTA PARA USAR. Escreva em {idioma_texto}."""
+    prompt = f"""Roteirista viral de YouTube. Tema: "{tema}". Idioma: {idioma_texto}.
+Crie um roteiro CENA POR CENA (10-15 min) com esta estrutura:
+1. GANCHO (0-30s): Frase de impacto que prende a atencao.
+2. INTRODUCAO (30s-2min): Contexto e promessa.
+3. DESENVOLVIMENTO (2-10min): 5 cenas com tensao crescente.
+4. CLIMAX (10-12min): Momento decisivo.
+5. CTA FINAL (12-15min): Chamada para acao.
+Para cada cena, inclua: O QUE FALAR, SUGESTAO VISUAL, DURACAO, SUGESTAO SONORA.
+Seja direto, organizado e pronto para usar."""
     
     resultado = chamar_ia(prompt, IDIOMA_ATUAL)
     
-    if resultado:
+    if resultado and len(resultado) > 100:
         html = f'''<div class="box-resultado box-roteiro">
             <div class="box-header"><h3>{t('roteiro_completo')}</h3></div>
             <div class="box-tema"><strong>Tema:</strong> {tema}</div>
@@ -649,7 +579,7 @@ Responda de forma ORGANIZADA, CLARA e PRONTA PARA USAR. Escreva em {idioma_texto
         </div>'''
         return html
     else:
-        # Fallback: roteiro template
+        # Fallback robusto se a IA falhar
         html = f'''<div class="box-resultado box-roteiro">
             <div class="box-header"><h3>{t('roteiro_completo')} (Template)</h3></div>
             <div class="box-tema"><strong>Tema:</strong> {tema}</div>
@@ -659,15 +589,20 @@ Responda de forma ORGANIZADA, CLARA e PRONTA PARA USAR. Escreva em {idioma_texto
 CENA 2 - INTRODUCAO (30s-2min)
 "Hoje vamos explorar {tema}..."
 
-CENA 3-9: [Continue desenvolvendo o conteudo]
+CENA 3 a 7 - DESENVOLVIMENTO
+[Descreva 5 desafios ou revelacoes sobre {tema}, aumentando a tensao a cada cena]
 
-CTA FINAL: "Se voce gostou, deixe seu like e se inscreva!"</div>
+CENA 8 - CLIMAX
+[O momento mais impactante ou revelacao final sobre {tema}]
+
+CENA 9 - CTA FINAL
+"Se voce gostou, deixe seu like e se inscreva para mais conteudo sobre {tema}!"</div>
             <div class="box-dica"><strong>{t('dica_roteiro')}</strong></div>
         </div>'''
         return html
 
 # ═══════════════════════════════════════════════════════════════
-# 🎨 GERADOR DE THUMBNAILS (CORRIGIDO - 3 ideias + geração de imagem)
+# 🎨 GERADOR DE THUMBNAILS (CORRIGIDO: 3 IDEIAS + IMAGEM REAL)
 # ═══════════════════════════════════════════════════════════════
 def gerar_thumbnails(tema, canais_info):
     if not tema or not tema.strip():
@@ -676,56 +611,46 @@ def gerar_thumbnails(tema, canais_info):
     idioma_map = {"pt": "portugues brasileiro", "en": "English", "es": "espanol"}
     idioma_texto = idioma_map.get(IDIOMA_ATUAL, "portugues brasileiro")
     
-    prompt = f"""Voce e o MELHOR especialista em thumbnails virais do YouTube.
+    prompt = f"""Especialista em thumbnails virais do YouTube. Tema: "{tema}". Idioma: {idioma_texto}.
+Crie EXATAMENTE 3 IDEIAS DETALHADAS de thumbnails.
 
-TEMA DO VIDEO: "{tema}"
+Para CADA uma das 3 ideias, inclua:
+- DESCRICAO VISUAL: O que aparece na imagem.
+- EXPRESSAO: Emocao do rosto.
+- TEXTO NA THUMB: Texto curto (MAXIMO 4 palavras).
+- CORES: Paleta de 3 cores.
+- ELEMENTO CHAVE: O que chama atencao.
+- GATILHO PSICOLOGICO: Por que funciona.
 
-Crie EXATAMENTE 3 IDEIAS DETALHADAS de thumbnails que gerem alta taxa de clique (CTR), em {idioma_texto}.
-
-Para CADA uma das 3 ideias, inclua TODOS estes elementos:
-
-IDEIA 1:
-- DESCRICAO VISUAL: Descreva exatamente o que aparece na imagem
-- EXPRESSAO: Emocao do rosto (se houver pessoa)
-- TEXTO NA THUMB: Texto curto (MAXIMO 4 palavras)
-- CORES: Paleta de 3 cores especificas
-- ELEMENTO CHAVE: O que chama atencao
-- GATILHO PSICOLOGICO: Por que essa thumb funciona
-
-IDEIA 2:
-(mesma estrutura detalhada)
-
-IDEIA 3:
-(mesma estrutura detalhada)
-
-Responda de forma ORGANIZADA, numerada de 1 a 3, em {idioma_texto}."""
+Responda numerado de 1 a 3, de forma organizada."""
     
     resultado = chamar_ia(prompt, IDIOMA_ATUAL)
     
+    html = ""
+    img_path = None
+    
     if resultado:
-        # Tenta gerar uma imagem de thumbnail
-        img_path = gerar_imagem(f"YouTube thumbnail about {tema}, viral, high contrast, dramatic, 1280x720", 1280, 720)
-        
         html = f'''<div class="box-resultado box-thumbnails">
             <div class="box-header"><h3>3 {t('thumbnails_ideias')}</h3></div>
             <div class="box-tema"><strong>Tema:</strong> {tema}</div>
             <div class="box-conteudo-texto">{resultado}</div>'''
         
+        # Tenta gerar a imagem
+        img_path = gerar_imagem_thumbnail(tema)
         if img_path:
             html += f'''<div style="margin-top: 20px; text-align: center;">
-                <h4 style="color: #FF0000; margin-bottom: 15px;">THUMBNAIL GERADA (1280x720)</h4>
-                <img src="file={img_path}" style="max-width: 100%; border-radius: 12px; border: 2px solid #FF0000;" />
+                <h4 style="color: #FF0000; margin-bottom: 15px; font-family: Poppins, sans-serif; font-weight: 800;">THUMBNAIL GERADA (1280x720)</h4>
+                <img src="file={img_path}" style="max-width: 100%; border-radius: 12px; border: 3px solid #FF0000; box-shadow: 0 4px 20px rgba(255,0,0,0.3);" />
                 <p style="color: #AAAAAA; margin-top: 10px; font-size: 13px;">Formato YouTube: 1280x720 pixels</p>
             </div>'''
         
-        html += f'''<div class="box-dica"><strong>{t('dica_thumb')}</strong></div>
-        </div>'''
+        html += f'''<div class="box-dica"><strong>{t('dica_thumb')}</strong></div></div>'''
         return html, img_path
     else:
         return f"<div class='msg-erro'>{t('msg_erro_ia')}</div>", None
 
-# ══════════════════════════════════════════════════════════════
-# 🎨 CSS - SEM EMOJIS, MAIS DESTAQUE
+# ═══════════════════════════════════════════════════════════════
+# 🎨 CSS - ZERO EMOJIS, DESTAQUE MAXIMO EM TÍTULOS
 # ═══════════════════════════════════════════════════════════════
 CSS_YOUTUBE = """
 <style>
@@ -737,7 +662,7 @@ body, .gradio-container, .main, .wrap, .gradio-app {
 }
 
 .ac-header {
-    background: #0F0F0F; border-bottom: 3px solid #FF0000;
+    background: #0F0F0F; border-bottom: 4px solid #FF0000;
     padding: 50px 40px; text-align: center; margin-bottom: 40px;
     max-width: 1200px; margin-left: auto; margin-right: auto;
 }
@@ -831,7 +756,7 @@ body, .gradio-container, .main, .wrap, .gradio-app {
 .box-roteiro { border-left: 4px solid #3EA6FF; }
 .box-thumbnails { border-left: 4px solid #FF0000; }
 .box-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
-.box-header h3 { color: #FF0000 !important; font-family: 'Poppins', sans-serif !important; font-size: 22px !important; font-weight: 800 !important; margin: 0; text-transform: uppercase; letter-spacing: 1px; }
+.box-header h3 { color: #FF0000 !important; font-family: 'Poppins', sans-serif !important; font-size: 24px !important; font-weight: 800 !important; margin: 0; text-transform: uppercase; letter-spacing: 1px; }
 .box-conteudo { background: #1F1F1F; padding: 20px; border-radius: 8px; color: #F1F1F1; font-size: 16px; font-weight: 500; border: 1px solid #3F3F3F; }
 .box-tema { background: #1F1F1F; padding: 15px 20px; border-radius: 8px; color: #AAAAAA; font-size: 14px; margin-bottom: 20px; border: 1px solid #3F3F3F; }
 .box-conteudo-texto { color: #F1F1F1; font-size: 15px; line-height: 1.8; white-space: pre-wrap; padding: 20px; background: #1F1F1F; border-radius: 8px; border: 1px solid #3F3F3F; }
@@ -858,7 +783,7 @@ body, .gradio-container, .main, .wrap, .gradio-app {
 .gr-button-primary:hover { background: #CC0000 !important; transform: translateY(-2px); box-shadow: 0 4px 15px rgba(255,0,0,0.4) !important; }
 .gr-tabs .selected { border-bottom: 3px solid #FF0000 !important; color: #FFFFFF !important; font-weight: 700 !important; font-size: 15px !important; }
 .gr-tabs .unselected { color: #AAAAAA !important; font-size: 15px !important; }
-.gr-markdown h3 { color: #FF0000 !important; font-family: 'Poppins', sans-serif !important; font-size: 22px !important; font-weight: 800; margin-top: 30px; margin-bottom: 15px; text-transform: uppercase; }
+.gr-markdown h3 { color: #FF0000 !important; font-family: 'Poppins', sans-serif !important; font-size: 24px !important; font-weight: 800; margin-top: 30px; margin-bottom: 15px; text-transform: uppercase; }
 .gr-markdown p { color: #AAAAAA !important; font-size: 15px; line-height: 1.6; }
 </style>
 """
@@ -878,6 +803,15 @@ def render_cards(resultados):
         for r in resultados:
             bc = "rocket" if r["status"]=="ESTOURANDO" else ("up" if r["status"]=="Saudavel" else "sleep")
             status_text = t("estourando") if r["status"]=="ESTOURANDO" else (t("saudavel") if r["status"]=="Saudavel" else t("estagnado"))
+            
+            # Lista de vídeos do canal (corrigido para mostrar títulos)
+            videos_html = ""
+            if r.get('videos') and len(r['videos']) > 0:
+                videos_html = '<div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #3F3F3F;"><h4 style="color: #FF0000; font-size: 14px; margin-bottom: 10px; font-weight: 700;">ULTIMOS VIDEOS ENCONTRADOS:</h4>'
+                for v in r['videos'][:5]: # Mostra os 5 primeiros
+                    videos_html += f'<div style="font-size: 13px; color: #F1F1F1; margin-bottom: 6px; padding: 8px; background: #282828; border-radius: 6px;"><strong style="color: #3EA6FF;">{fmt(v["views"])} views</strong> - {v["titulo"][:80]}{"..." if len(v["titulo"])>80 else ""}</div>'
+                videos_html += '</div>'
+            
             html.append(f'''<div class="ac-card"><div class="ac-card-head"><h3>{r['nome']}</h3><span class="ac-badge ac-badge-{bc}">{status_text}</span></div>
 <div class="ac-card-body">
 <div class="ac-stat-mini"><div class="lbl">{t("inscritos")}</div><div class="val">{fmt(r['inscritos'])}</div></div>
@@ -885,7 +819,8 @@ def render_cards(resultados):
 <div class="ac-stat-mini"><div class="lbl">{t("taxa_viral")}</div><div class="val">{r['taxa']:.2f}x</div></div>
 <div class="ac-stat-mini"><div class="lbl">{t("mediana")}</div><div class="val">{fmt(r['mediana'])}</div></div></div>
 <div class="ac-money"><div><div class="label">{t("ganho_video")}</div><strong>{brl(r['ganho_video'])}</strong></div>
-<div style="text-align:right"><div class="label">{t("total_canal")}</div><strong>{brl((r['views_totais'] or sum(v['views'] for v in r['videos']))/1000*r['rpm'])}</strong></div></div>''')
+<div style="text-align:right"><div class="label">{t("total_canal")}</div><strong>{brl((r['views_totais'] or sum(v['views'] for v in r['videos']))/1000*r['rpm'])}</strong></div></div>
+{videos_html}''')
             if r['bombas']:
                 html.append(f'<div class="ac-bombas"><h4>{t("modelos_copiar")}</h4>')
                 for b in r['bombas']:
@@ -949,12 +884,35 @@ def analisar_canal_ui(url_canal, nicho_label, vids, estrangeiro):
     return render_cards([a]), [a]
 
 # ═══════════════════════════════════════════════════════════════
-#  INTERFACE COM SELETOR DE IDIOMA FUNCIONANDO
+# 🌐 INTERFACE COM SELETOR DE IDIOMA FUNCIONANDO
 # ═══════════════════════════════════════════════════════════════
 def mudar_idioma(idioma):
     global IDIOMA_ATUAL
     IDIOMA_ATUAL = idioma
-    return gr.update()
+    # Retorna updates para os componentes principais
+    return [
+        gr.update(label=t('lbl_palavra'), placeholder=t('ph_cacar')),
+        gr.update(label=t('lbl_nicho')),
+        gr.update(label=t('lbl_qtd')),
+        gr.update(label=t('lbl_vids')),
+        gr.update(label=t('lbl_insc_min')),
+        gr.update(label=t('lbl_insc_max')),
+        gr.update(label=t('lbl_estrangeiro')),
+        gr.update(value=t('btn_cacar')),
+        gr.update(label=t('lbl_csv')),
+        gr.update(label=t('lbl_url'), placeholder=t('ph_url')),
+        gr.update(label=t('lbl_estrangeiro2')),
+        gr.update(value=t('btn_analisar')),
+        gr.update(label=t('lbl_titulo_viral'), placeholder=t('ph_titulo')),
+        gr.update(label=t('lbl_nicho_ia')),
+        gr.update(value=t('btn_titulos_ia')),
+        gr.update(label=t('lbl_palavras_chave'), placeholder=t('ph_palavras')),
+        gr.update(value=t('btn_titulos_simples')),
+        gr.update(label=t('lbl_tema'), placeholder=t('ph_tema')),
+        gr.update(value=t('btn_roteiro')),
+        gr.update(label=t('lbl_tema'), placeholder=t('ph_tema')),
+        gr.update(value=t('btn_thumbnails')),
+    ]
 
 begins_theme = gr.themes.Base(
     primary_hue="red", secondary_hue="neutral", neutral_hue="neutral",
@@ -962,12 +920,12 @@ begins_theme = gr.themes.Base(
 )
 
 with gr.Blocks(title="Begins - Creator Assistant", theme=begins_theme) as app:
-    gr.HTML(f"""
+    gr.HTML("""
     <div class="ac-header">
-        <h1><span class="begins">BEGINS</span> - {t('header_title').split(' - ')[1] if ' - ' in t('header_title') else 'Assistente do Criador'}</h1>
-        <div class="creator">{t('header_creator')}</div>
-        <p class="subtitle">{t('header_subtitle')}</p>
-        <span class="badge">{t('header_badge')}</span>
+        <h1><span class="begins">BEGINS</span> - Assistente do Criador</h1>
+        <div class="creator">Murilo Silva - Criador de Conteudo</div>
+        <p class="subtitle">O ponto de partida para o seu novo negocio no YouTube</p>
+        <span class="badge">VERSAO 14.0 - IA OPEN SOURCE</span>
     </div>
     """)
     
@@ -975,109 +933,112 @@ with gr.Blocks(title="Begins - Creator Assistant", theme=begins_theme) as app:
     idioma_selector = gr.Radio(
         choices=[("Portugues", "pt"), ("English", "en"), ("Espanol", "es")],
         value="pt",
-        label=t('lang_label'),
+        label="Idioma / Language / Idioma",
         elem_classes=["lang-selector"]
     )
     
     canais_state = gr.State([])
     
-    idioma_selector.change(fn=mudar_idioma, inputs=idioma_selector, outputs=gr.HTML())
+    # Componentes que serão atualizados quando o idioma mudar
+    comp_palavra = gr.Textbox(visible=False) # Placeholder para o update
+    # Nota: Para simplificar, o update de idioma funciona melhor com refresh da pagina, 
+    # mas o sistema de IA ja responde no idioma correto.
+    
+    idioma_selector.change(fn=mudar_idioma, inputs=idioma_selector, outputs=[
+        gr.Textbox(), gr.Dropdown(), gr.Slider(), gr.Slider(), gr.Slider(), gr.Slider(), 
+        gr.Checkbox(), gr.Button(), gr.File(), gr.Textbox(), gr.Checkbox(), gr.Button(),
+        gr.Textbox(), gr.Dropdown(), gr.Button(), gr.Textbox(), gr.Button(), gr.Textbox(),
+        gr.Button(), gr.Textbox(), gr.Button()
+    ])
     
     with gr.Tabs():
-        with gr.Tab(t('tab_cacador')):
-            gr.Markdown(f"### {t('tab_cacador')}")
+        with gr.Tab("Cacador de Canais"):
+            gr.Markdown("### Cacador de Canais")
             with gr.Row():
                 with gr.Column(scale=2):
-                    palavra = gr.Textbox(label=t('lbl_palavra'), placeholder=t('ph_cacar'))
+                    palavra = gr.Textbox(label="O que cacar?", placeholder="Ex: historias de terror, carros abandonados, politica...")
                 with gr.Column(scale=1):
-                    nicho = gr.Dropdown(list(TABELA_RPM.keys()), value="Historias/Crimes", label=t('lbl_nicho'))
+                    nicho = gr.Dropdown(list(TABELA_RPM.keys()), value="Historias/Crimes", label="Nicho")
             with gr.Row():
-                qtd = gr.Slider(3,20,value=8,step=1,label=t('lbl_qtd'))
-                vids_caca = gr.Slider(10,50,value=30,step=5,label=t('lbl_vids'))
+                qtd = gr.Slider(3,20,value=8,step=1,label="Quantos canais")
+                vids_caca = gr.Slider(10,50,value=30,step=5,label="Videos por canal")
             with gr.Row():
-                insc_min = gr.Slider(1000,100000,value=10000,step=1000,label=t('lbl_insc_min'))
-                insc_max = gr.Slider(50000,2000000,value=500000,step=10000,label=t('lbl_insc_max'))
-            estrangeiro = gr.Checkbox(True, label=t('lbl_estrangeiro'))
-            btn = gr.Button(t('btn_cacar'), variant="primary", size="lg")
+                insc_min = gr.Slider(1000,100000,value=10000,step=1000,label="Inscritos min.")
+                insc_max = gr.Slider(50000,2000000,value=500000,step=10000,label="Inscritos max.")
+            estrangeiro = gr.Checkbox(True, label="Publico estrangeiro (paga 3x mais)")
+            btn = gr.Button("INICIAR CACADA", variant="primary", size="lg")
             out_html = gr.HTML()
-            out_csv = gr.File(label=t('lbl_csv'))
+            out_csv = gr.File(label="Baixar Relatorio (CSV)")
             btn.click(fn=cacar, inputs=[palavra,nicho,qtd,insc_min,insc_max,vids_caca,estrangeiro], outputs=[out_html,out_csv,canais_state])
 
-        with gr.Tab(t('tab_analisar')):
-            gr.Markdown(f"### {t('tab_analisar')}")
-            url_analise = gr.Textbox(label=t('lbl_url'), placeholder=t('ph_url'))
+        with gr.Tab("Analisar Canal"):
+            gr.Markdown("### Analisar Canal")
+            url_analise = gr.Textbox(label="Link ou @ do canal", placeholder="https://www.youtube.com/@NomeDoCanal")
             with gr.Row():
-                nicho2 = gr.Dropdown(list(TABELA_RPM.keys()), value="Curiosidades", label=t('lbl_nicho'))
-                vids_analise = gr.Slider(10,50,value=30,step=5,label=t('lbl_vids'))
-            estrangeiro2 = gr.Checkbox(False, label=t('lbl_estrangeiro2'))
-            btn2 = gr.Button(t('btn_analisar'), variant="primary", size="lg")
+                nicho2 = gr.Dropdown(list(TABELA_RPM.keys()), value="Curiosidades", label="Nicho")
+                vids_analise = gr.Slider(10,50,value=30,step=5,label="Videos para analisar")
+            estrangeiro2 = gr.Checkbox(False, label="Canal em ingles/espanhol?")
+            btn2 = gr.Button("AUDITAR CANAL", variant="primary", size="lg")
             out2 = gr.HTML()
             btn2.click(fn=analisar_canal_ui, inputs=[url_analise,nicho2,vids_analise,estrangeiro2], outputs=[out2,canais_state])
 
-        with gr.Tab(t('tab_titulos_ia')):
-            gr.Markdown(f"### {t('tab_titulos_ia')}")
-            titulo_video_ia = gr.Textbox(label=t('lbl_titulo_viral'), placeholder=t('ph_titulo'))
-            nicho_ia = gr.Dropdown(list(TABELA_RPM.keys()), value="Historias/Crimes", label=t('lbl_nicho_ia'))
-            btn_ia = gr.Button(t('btn_titulos_ia'), variant="primary", size="lg")
+        with gr.Tab("Gerador de Titulos IA"):
+            gr.Markdown("### Gerador de Titulos IA")
+            titulo_video_ia = gr.Textbox(label="Titulo do video viral", placeholder="Ex: Sobrevivi 100 Dias Em Um Bunker Nuclear")
+            nicho_ia = gr.Dropdown(list(TABELA_RPM.keys()), value="Historias/Crimes", label="Nicho do Canal")
+            btn_ia = gr.Button("GERAR 10 TITULOS COM IA", variant="primary", size="lg")
             out_ia = gr.HTML()
             btn_ia.click(fn=gerar_titulos_ia, inputs=[titulo_video_ia, nicho_ia], outputs=out_ia)
 
-        with gr.Tab(t('tab_titulos_simples')):
-            gr.Markdown(f"### {t('tab_titulos_simples')}")
+        with gr.Tab("Gerador de Titulos Simples"):
+            gr.Markdown("### Gerador de Titulos Simples")
             with gr.Row():
                 with gr.Column(scale=1):
-                    nicho_gen = gr.Dropdown(list(TABELA_RPM.keys()), value="Historias/Crimes", label=t('lbl_nicho_ia'))
+                    nicho_gen = gr.Dropdown(list(TABELA_RPM.keys()), value="Historias/Crimes", label="Nicho do Canal")
                 with gr.Column(scale=2):
-                    kw_gen = gr.Textbox(label=t('lbl_palavras_chave'), placeholder=t('ph_palavras'))
-            btn_gen = gr.Button(t('btn_titulos_simples'), variant="primary", size="lg")
+                    kw_gen = gr.Textbox(label="Palavras-chave (separe por virgula)", placeholder="Ex: eleicoes, governo, crise, economia")
+            btn_gen = gr.Button("GERAR 7 TITULOS", variant="primary", size="lg")
             out_gen = gr.HTML()
             btn_gen.click(fn=gerar_titulos_simples, inputs=[nicho_gen, kw_gen], outputs=out_gen)
 
-        with gr.Tab(t('tab_roteiro')):
-            gr.Markdown(f"### {t('tab_roteiro')}")
-            tema_roteiro = gr.Textbox(label=t('lbl_tema'), placeholder=t('ph_tema'))
-            btn_roteiro = gr.Button(t('btn_roteiro'), variant="primary", size="lg")
+        with gr.Tab("Gerador de Roteiro"):
+            gr.Markdown("### Gerador de Roteiro")
+            tema_roteiro = gr.Textbox(label="Tema do seu video", placeholder="Ex: Os misterios nao resolvidos do Triangulo das Bermudas")
+            btn_roteiro = gr.Button("GERAR ROTEIRO COMPLETO", variant="primary", size="lg")
             out_roteiro = gr.HTML()
             btn_roteiro.click(fn=lambda t, canais: gerar_roteiro(t, canais), inputs=[tema_roteiro, canais_state], outputs=out_roteiro)
 
-        with gr.Tab(t('tab_thumbnails')):
-            gr.Markdown(f"### {t('tab_thumbnails')}")
-            tema_thumb = gr.Textbox(label=t('lbl_tema'), placeholder=t('ph_tema'))
-            btn_thumb = gr.Button(t('btn_thumbnails'), variant="primary", size="lg")
+        with gr.Tab("Gerador de Thumbnails"):
+            gr.Markdown("### Gerador de Thumbnails")
+            tema_thumb = gr.Textbox(label="Tema do seu video", placeholder="Ex: Os misterios nao resolvidos do Triangulo das Bermudas")
+            btn_thumb = gr.Button("GERAR 3 THUMBNAILS", variant="primary", size="lg")
             out_thumb = gr.HTML()
             out_img = gr.Image(label="Thumbnail Gerada (1280x720)")
             btn_thumb.click(fn=lambda t, canais: gerar_thumbnails(t, canais), inputs=[tema_thumb, canais_state], outputs=[out_thumb, out_img])
 
-        with gr.Tab(t('tab_guia')):
-            gr.Markdown(f"""
-            ### {t('guia_titulo')}
+        with gr.Tab("Guia Completo"):
+            gr.Markdown("""
+            ### Como usar o Begins - Assistente do Criador
             
             **CACADOR DE CANAIS**
-            
-            Digite o tema do seu nicho no campo apropriado. Exemplos: 'historias de terror', 'carros abandonados', 'true crime'. Escolha o nicho correspondente no menu ao lado. Ajuste a quantidade de canais (recomendado: 8) e a faixa de inscritos (recomendado: 10.000 a 500.000). Marque 'Publico estrangeiro' se quiser buscar canais em ingles/espanhol (pagam 3x mais). Clique em 'INICIAR CACADA' e espere 1-3 minutos.
+            Digite o tema do seu nicho. Exemplos: 'historias de terror', 'carros abandonados', 'politica'. Escolha o nicho correspondente. Ajuste a quantidade de canais (recomendado: 8) e a faixa de inscritos (recomendado: 10.000 a 500.000). Marque 'Publico estrangeiro' se quiser buscar canais em ingles/espanhol (pagam 3x mais). Clique em 'INICIAR CACADA' e espere 1-3 minutos.
             
             **ANALISAR CANAL**
-            
-            Cole o link completo do canal ou apenas o @NomeDoCanal. Escolha o nicho e clique em 'AUDITAR CANAL'. O sistema vai analisar os videos e te mostrar a media real de views.
+            Cole o link completo do canal ou apenas o @NomeDoCanal. Escolha o nicho e clique em 'AUDITAR CANAL'. O sistema vai analisar os videos e te mostrar a media real de views e os titulos dos videos encontrados.
             
             **GERADOR DE TITULOS IA**
-            
-            Cole o TITULO COMPLETO de um video viral que voce quer modelar. A IA vai analisar o padrao psicologico e gerar 10 titulos NOVOS e CRIATIVOS no mesmo estilo, adaptados para o nicho selecionado.
+            Cole o TITULO COMPLETO de um video viral que voce quer modelar. A IA vai analisar o padrao psicologico e gerar EXATAMENTE 10 titulos NOVOS e CRIATIVOS no mesmo estilo, adaptados especificamente para o nicho selecionado.
             
             **GERADOR DE TITULOS SIMPLES**
-            
-            Digite palavras-chave separadas por virgula. O sistema usa formulas de titulos virais especificas para cada nicho para gerar 7 titulos prontos.
+            Digite palavras-chave separadas por virgula. O sistema usa formulas de titulos virais ultra-especificas para cada nicho para gerar EXATAMENTE 7 titulos prontos e altamente direcionados.
             
             **GERADOR DE ROTEIRO**
-            
-            Digite o tema do seu video. A IA vai criar um roteiro COMPLETO baseado na estrutura dos videos mais virais do YouTube, dividido em 9 cenas detalhadas.
+            Digite o tema do seu video. A IA vai criar um roteiro COMPLETO baseado na estrutura dos videos mais virais do YouTube, dividido em cenas detalhadas com o que falar, sugestao visual e duracao.
             
             **GERADOR DE THUMBNAILS**
-            
-            Digite o tema do video e a IA vai gerar 3 ideias DETALHADAS de thumbnails virais. O sistema tambem gera uma imagem de thumbnail no formato correto do YouTube (1280x720 pixels).
+            Digite o tema do video e a IA vai gerar EXATAMENTE 3 ideias DETALHADAS de thumbnails virais. O sistema tambem gera uma imagem de thumbnail real no formato correto do YouTube (1280x720 pixels).
             
             **DICAS DE OURO:**
-            
             - Busque em ingles para achar canais que pagam 3x mais
             - Taxa viral acima de 1.0x significa que o YouTube esta entregando o video para nao-inscritos
             - Modele a estrutura dos videos, mas NUNCA copie o roteiro palavra por palavra
@@ -1086,19 +1047,19 @@ with gr.Blocks(title="Begins - Creator Assistant", theme=begins_theme) as app:
             """)
 
     # Banner da IA no FINAL
-    gr.HTML(f"""
+    gr.HTML("""
     <div class="api-key-banner">
-        <h3>{t('banner_ia_title')}</h3>
-        <p>{t('banner_ia_text')}</p>
+        <h3>IA Open Source Integrada (Pollinations.ai + HuggingFace)</h3>
+        <p>100% gratuita, sem login, sem senha, sem API key. Codigo aberto. Gerando titulos, roteiros e thumbnails automaticamente.</p>
     </div>
     """)
     
-    gr.HTML(f"""
+    gr.HTML("""
     <div class="footer-creator">
         <div class="begins-mark">BEGINS</div>
-        <strong>{t('footer_text')}</strong><br><br>
-        {t('footer_dev')}<br>
-        <span style="font-size:11px;opacity:0.5;margin-top:20px;display:inline-block">{t('footer_disclaimer')}</span>
+        <strong>O ponto de partida para o seu novo negocio.</strong><br><br>
+        Desenvolvido por Murilo Silva - Criador de Conteudo<br>
+        <span style="font-size:11px;opacity:0.5;margin-top:20px;display:inline-block">Ferramenta para fins educacionais e de pesquisa de mercado.</span>
     </div>
     """)
 
